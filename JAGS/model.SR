@@ -1,0 +1,44 @@
+
+    model{
+    
+    ## Stock-recruit component
+    for(i in 1:Npops){
+      beta[i] <- 1/Smax[i]
+      Smax[i] ~ dlnorm(Smax.p[i],1/(Smax.tau[i]^2))
+        for(t in 1:yrs.dat[i]) {
+          logRS[t,i] ~ dnorm(mu.y[t,i], tau)
+          mu.y[t,i] <- lalpha[t,i] - beta[i] * spawners[t,i]
+          lalpha[t,i] ~ dnorm(mu_lalpha[t,group[i]], tau.alpha[group[i]]) # alpha must be positive
+          alpha[t,i] <- log(exp(lalpha[t,i]+0.5*(sigma_alpha[group[i]]^2))) # bias-corrected log-alpha for population i
+        }
+      ln_alpha.mu[i] <- mean(lalpha[1:yrs.dat[i],i]) # long-term average log-alpha
+
+    }
+    for(k in 1:Kgroups)
+    {
+    tau.alpha[k] <- pow(sigma_alpha[k],-2)
+    sigma_alpha[k] ~ dt(0, pow(2.5,-2), 1)T(0,) # vague half-Cauchy prior on standard deviation
+    }
+    
+    mu_lalpha[1,1:Kgroups] ~ dmnorm(init_lalpha,tauMVN) # initialize the log-alpha 6x6 matrix
+    for(z in 2:n.years)
+    {
+    mu_lalpha[z,1:Kgroups] ~ dmnorm(mu_lalpha[z-1,1:Kgroups],tauMVN) # make log-alpha recursive, and correlated to each group
+    }
+    for(z in 1:n.years)
+    {
+      for(k in 1:Kgroups)
+      {
+        mu_alpha[z,k] <- log(exp(mu_lalpha[z,k] + 0.5*sigma_group[k])) # global bias-corrected mean alphas for each of the 6 groups
+      }
+    }
+    tauMVN ~ dwish(covarGroups,Kgroups+1)
+    sigmaGroups <- inverse(tauMVN)
+    for(k in 1:Kgroups)
+    {
+      sigma_group[k] <- sigmaGroups[k,k]
+    }
+    tau <- pow(sigma, -2)
+    sigma ~ dt(0, pow(2.5,-2), 1)T(0,) # vague half-Cauchy prior for standard deviations
+    
+    }

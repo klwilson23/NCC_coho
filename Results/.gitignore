@@ -1,0 +1,14 @@
+COSR3B.cormat_lalpha_MCMC.rds
+coho_forecasting.rds
+coho_forecasting_popdyn.rds
+coho_forecasting_rec.rds
+jags_forecasting_data.rds
+COSR3B.ar1_lalpha_MCMC.rds
+coho_forecasting_ar1.rds
+coho_forecasting_popdyn_ar1.rds
+coho_forecasting_rec_ar1.rds
+COSR3B.tr1_lalpha_MCMC.rds
+coho_forecasting_tr1.rds
+coho_forecasting_popdyn_tr1.rds
+coho_forecasting_rec_tr1.rds
+jags_forecasting_data_tr1.rds

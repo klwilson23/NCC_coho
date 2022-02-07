@@ -1,0 +1,13 @@
+group_name	group_no	fishery	mean_ER	sd_ER
+haida_gwaii	1	alaska	0.009	0.006625021
+haida_gwaii	1	bc_total	0.155	0.042054294
+nass	2	alaska	0.352	0.138231246
+nass	2	bc_total	0.17350104	0.098877101
+skeena	3	alaska	0.216791733	0.049936021
+skeena	3	bc_total	0.165226468	0.070591852
+hec_low	4	alaska	0.086662148	0.019994392
+hec_low	4	bc_total	0.16451523	0.050602989
+nc_inner	5	alaska	0.129856858	0.029908157
+nc_inner	5	bc_total	0.16451523	0.050602989
+cc_south	6	alaska	0.129856858	0.029908157
+cc_south	6	bc_total	0.16451523	0.050602989
