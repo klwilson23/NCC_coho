@@ -1,3 +1,12 @@
+SR.dat<-read.table("Data/Coho_Brood_MASTER.txt", header=T)
+SR.dat_full <- SR.dat
+SR.dat_predict<-subset(SR.dat,SR.dat$year>=2017)
+SR.dat<-subset(SR.dat,SR.dat$year<2017)
+
+SR.dat$logRS1<-log(SR.dat$RS_E)
+SR.dat$logRS2<-log(SR.dat$RS_2)
+SR.dat$logRS3<-log(SR.dat$RS_3)
+
 co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
 co_pops$mean_total<-NA
 
@@ -50,6 +59,23 @@ for (j in 1:n.pops){
   }
 }
 
+Smsy_t<-Sgen_t<-Umsy_t<-array(data=NA,dim=c(samples,n.pops,n.years))
+for(t in 1:n.years)
+{
+  for (j in 1:n.pops){
+    samp.chain<-sample(1:n_chains,samples,replace=TRUE)
+    samp.MCMC<-sample(1:samples, samples, replace=FALSE)
+    
+    for (i in 1:samples){
+      alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],match(paste("lalpha[",t,",",j,"]",sep=""),mcmc_names)]
+      beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
+      Smsy_t[i,j,t] <- (1 - lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
+      Sgen_t[i,j,t] <- optimize(Sgen_find,c(0,Smsy_t[i,j,t]),tol=0.0001,Smsy=Smsy_t[i,j,t],a=alpha,b=beta)$minimum
+      Umsy_t[i,j,t] <- optimize(umsy_find,c(0,1),tol=0.0001,Smsy=Smsy_t[i,j,t],a=alpha,b=beta)$minimum
+    }
+  }
+}
+
 Smsy_priors <- apply(Smsy,2,FUN=function(x){c(mean(x),sd(x))})
 Smsy_priors <- data.frame("pop"=1:n.pops,"mean"=Smsy_priors[1,],"tau"=1/(Smsy_priors[2,]^2))
 Sgen_priors <- apply(Sgen,2,FUN=function(x){c(mean(x),sd(x))})
@@ -59,3 +85,23 @@ Umsy_priors <- data.frame("pop"=1:n.pops,"mean"=Umsy_priors[1,],"tau"=1/(Umsy_pr
 saveRDS(Smsy_priors,"Results/Smsy.rds")
 saveRDS(Sgen_priors,"Results/Sgen.rds")
 saveRDS(Umsy_priors,"Results/Umsy.rds")
+
+
+Smsy_priors <- as.data.frame(apply(Smsy_t,c(3,2),mean))
+Sgen_priors <- as.data.frame(apply(Sgen_t,c(3,2),mean))
+Umsy_priors <- as.data.frame(apply(Umsy_t,c(3,2),mean))
+colnames(Sgen_priors) <- colnames(Umsy_priors) <- colnames(Smsy_priors) <- co_pops$population
+Smsy_priors$Year <- seq(1980,2016,1)
+Sgen_priors$Year <- seq(1980,2016,1)
+Umsy_priors$Year <- seq(1980,2016,1)
+
+Smsy_tv <- tidyr::pivot_longer(Smsy_priors,cols=1:length(co_pops$population),names_to="Population",values_to = "Value")
+Smsy_tv$Metric <- "Smsy"
+Sgen_tv <- tidyr::pivot_longer(Sgen_priors,cols=1:length(co_pops$population),names_to="Population",values_to = "Value")
+Sgen_tv$Metric <- "Sgen"
+Umsy_tv <- tidyr::pivot_longer(Umsy_priors,cols=1:length(co_pops$population),names_to="Population",values_to = "Value")
+Umsy_tv$Metric <- "Umsy"
+
+time_varying <- rbind(Smsy_tv,Sgen_tv,Umsy_tv)
+
+saveRDS(time_varying,"Results/time_varying_metrics.rds")

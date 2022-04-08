@@ -683,10 +683,9 @@ for(i in 1:datamcmc2$Nregs)
   #abline(h=1,lwd=1,lty=1,col="black")
   text(x=i,y=-20,LETTERS[i],font=2,xpd=NA)
   text(x=i,y=1.15*max(100*spawn_fore_risk),round(mean(100*spawn_fore_risk),0),font=2,xpd=NA)
-  
 }
 
-legend(x=3,y=225,legend=colnames(escape_reg),title="Management scenario",bty="n",pch=22,pt.bg=adjustcolor(1:4,0.9),xpd=NA)
+legend(x=3,y=225,legend=colnames(escape_reg),title="Management scenario",bty="n",pch=22,pt.bg=adjustcolor(1:5,0.9),xpd=NA)
 
 dev.off()
 
@@ -856,7 +855,7 @@ for(i in 1:datamcmc2$Nregs)
   text(x=i,y=1.15*max(group_ui),round(mean(group_mdn),1),font=2,xpd=NA)
 }
 
-legend(x=3,y=6,legend=colnames(escape_reg),title="Management scenario",bty="n",pch=22,pt.bg=adjustcolor(1:4,0.9),xpd=NA)
+legend(x=3,y=6,legend=colnames(escape_reg),title="Management scenario",bty="n",pch=22,pt.bg=adjustcolor(1:5,0.9),xpd=NA)
 
 dev.off()
 

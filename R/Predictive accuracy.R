@@ -2,7 +2,7 @@ rmse_rw <- readRDS(file="Results/predictive error random walk.rds")
 rmse_ar1 <- readRDS(file="Results/predictive error ar1.rds")
 rmse_tr1 <- readRDS(file="Results/predictive error tr1.rds")
 
-rmse <- data.frame("model"=factor(c(rep("Random walk",ncol(rmse_rw)),rep("Mean recursive",ncol(rmse_rw)),rep("Trending",ncol(rmse_tr1)))),"error"=c(rmse_rw[2,],rmse_ar1[2,],rmse_tr1[2,]),"population"=rep(colnames(rmse_rw),3),"scale"="Population")
+rmse <- data.frame("model"=factor(c(rep("Random walk",ncol(rmse_rw)),rep("Mean reverting",ncol(rmse_rw)),rep("Trending",ncol(rmse_tr1)))),"error"=c(rmse_rw[2,],rmse_ar1[2,],rmse_tr1[2,]),"population"=rep(colnames(rmse_rw),3),"scale"="Population")
 mean_error <- aggregate(error~model,rmse,sum,na.rm=TRUE)
 
 rmse <- rbind(rmse,data.frame(mean_error,"population"="aggregate","scale"="Aggregate"))
