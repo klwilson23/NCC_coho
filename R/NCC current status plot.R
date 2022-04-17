@@ -169,25 +169,10 @@ umsy_find <- function(Smsy,Umsy,a,b)
   #b <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[1]]
   (Smsy-(1-Umsy)*(a/b))^2
 }
-for (j in 1:n.pops){
-  samp.chain<-sample(1:n_chains,samples,replace=TRUE)
-  samp.MCMC<-sample(1:samples, samples, replace=FALSE)
-  
-  for (i in 1:samples){
-    alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("ln_alpha.mu",mcmc_names)[j]]
-    beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
-    Smsy[i,j]<-(1 - lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
-    Sgen[i,j] <- optimize(Sgen_find,c(0,Smsy[i,j]),tol=0.0001,Smsy=Smsy[i,j],a=alpha,b=beta)$minimum
-    Umsy[i,j] <- optimize(umsy_find,c(0,1),tol=0.0001,Smsy=Smsy[i,j],a=alpha,b=beta)$minimum
-  }
-}
 
-Smsy_priors <- apply(Smsy,2,FUN=function(x){c(mean(x),sd(x))})
-Smsy_priors <- data.frame("pop"=1:n.pops,"mean"=Smsy_priors[1,],"tau"=1/(Smsy_priors[2,]^2))
-Sgen_priors <- apply(Sgen,2,FUN=function(x){c(mean(x),sd(x))})
-Sgen_priors <- data.frame("pop"=1:n.pops,"mean"=Sgen_priors[1,],"tau"=1/(Sgen_priors[2,]^2))
-Umsy_priors <- apply(Umsy,2,FUN=function(x){c(mean(x),sd(x))})
-Umsy_priors <- data.frame("pop"=1:n.pops,"mean"=Umsy_priors[1,],"tau"=1/(Umsy_priors[2,]^2))
+Smsy_priors <- readRDS("Results/Smsy.rds")
+Sgen_priors <- readRDS("Results/Sgen.rds")
+Umsy_priors <- readRDS("Results/Umsy.rds")
 
 alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("ln_alpha.mu",mcmc_names)[j]]
 beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
@@ -210,21 +195,29 @@ pop_sub <- aggregate(total_run~pop_no,SR.dat_full,mean,na.rm=TRUE)
 run_over_baseline <- 100*(sum(pop_sub$total_run)-sum(baselines[pop_sub$pop_no]))/sum(baselines[pop_sub$pop_no])
 
 SR.dat_full$baseline_run <- (baselines)[SR.dat_full$pop_no]
-SR.dat_full$lrp <- (Smsy_priors$mean)[SR.dat_full$pop_no]
+SR.dat_full$usr <- 0.8*(Smsy_priors$mean)[SR.dat_full$pop_no]
+SR.dat_full$lrp <- (Sgen_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$ucur <- ifelse(!is.na(SR.dat_full$er_2),SR.dat_full$er_2,SR.dat_full$er_E)
 SR.dat_full$umsy <- (Umsy_priors$mean)[SR.dat_full$pop_no]
-SR.dat_full$regime <- ifelse(SR.dat_full$year>=1990 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2011,"recovering","recent"))
+SR.dat_full$recent <- ifelse(SR.dat_full$year>=1990 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
+SR.dat_full$regime <- ifelse(SR.dat_full$year>=1990 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
 
-pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,ucur/umsy)~pop_no+regime,SR.dat_full,mean,na.rm=F)
-recent <- pop_sub[pop_sub$regime=="recent",]
-early <- pop_sub[pop_sub$regime=="early",]
-recovering <- pop_sub[pop_sub$regime=="recovering",]
+nsamps <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_full$pop_no==x]))})
+n_rec <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_full$pop_no==x & SR.dat_full$regime=='recent']))})
+
+SR.dat_full$n <- nsamps[SR.dat_full$pop_no]
+SR.dat_full$n_rec <- n_rec[SR.dat_full$pop_no]
+
+pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+recent,SR.dat_full,mean,na.rm=F)
+recent <- pop_sub[pop_sub$recent=="recent",]
+early <- pop_sub[pop_sub$recent=="early",]
+recovering <- pop_sub[pop_sub$recent=="recovering",]
 time_series <- merge(merge(early,recovering,by="pop_no"),recent,by="pop_no")
 time_series$pop <- pop_names[time_series$pop_no]
 jpeg(filename="Figures/current status tr1.jpeg", width=4.5,height=4.5, units="in", res=600)
 par(mar=c(4,4,0.1,0.1))
-status <- data.frame("pop"=pop_names[recent$pop_no],"s_over_msy"=recent$V2,"baseline"=recent$V1,"u_over_umsy"=recent$V3)
-plot(NA,ylab=expression(u[cur]/u[MSY]),xlab=expression(S[cur]/S[MSY]),xlim=1.1*range(c(0,2,status$s_over_msy)),ylim=1.1*range(c(0,2,status$u_over_umsy)))
+status <- data.frame("pop"=pop_names[recent$pop_no],"s_over_msy"=recent$V3,"baseline"=recent$V1,"u_over_umsy"=recent$V4)
+plot(NA,ylab=expression(u[cur]/u[MSY]),xlab=expression(S[cur]/(0.8*S[MSY])),xlim=1.1*range(c(0,2,status$s_over_msy)),ylim=1.1*range(c(0,2,status$u_over_umsy)))
 polygon(y=c(-5,1,1,-5),x=c(1,1,40,40),col=adjustcolor("seagreen",1),border=NA,xpd=FALSE)
 polygon(y=c(1,1,20,20),x=c(-5,1,1,-5),col=adjustcolor("tomato",1),border=NA,xpd=FALSE)
 polygon(y=c(1,20,20,1),x=c(1,1,40,40),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
@@ -240,21 +233,21 @@ Corner_text("no overfishing, but overfished","bottomleft",cex=0.7)
 dev.off()
 
 jpeg(filename="Figures/time-series of status tr1.jpeg", width=4.5,height=4.5, units="in", res=600)
-sub_series <- time_series[c(which.max(time_series$V3.x),which.max(time_series$V1.x-time_series$V1),which.max(time_series$V3.y-time_series$V3),which.max(time_series$V1-time_series$V1.y)),]
+sub_series <- time_series[c(which.max(time_series$V4.x),which.max(time_series$V3.x-time_series$V3),which.max(time_series$V4.y-time_series$V4),which.max(time_series$V3-time_series$V3.y)),]
 par(mar=c(4,4,0.1,0.1))
-plot(NA,ylab=expression(u[t]/u[MSY]),xlab=expression(S[t]/S[MSY]),xlim=1.1*range(c(0,2,sub_series$V1.x,sub_series$V1.y,sub_series$V1)),ylim=1.1*range(c(0,2,sub_series$V3.x,sub_series$V3.y,sub_series$V3)))
+plot(NA,ylab=expression(u[t]/u[MSY]),xlab=expression(S[t]/S[MSY]),xlim=1.1*range(c(0,2,sub_series$V3.x,sub_series$V3.y,sub_series$V3)),ylim=1.1*range(c(0,2,sub_series$V4.x,sub_series$V4.y,sub_series$V4)))
 polygon(y=c(-5,1,1,-5),x=c(1,1,40,40),col=adjustcolor("seagreen",1),border=NA,xpd=FALSE)
 polygon(y=c(1,1,20,20),x=c(-5,1,1,-5),col=adjustcolor("tomato",1),border=NA,xpd=FALSE)
 polygon(y=c(1,20,20,1),x=c(1,1,40,40),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
 polygon(y=c(-5,1,1,-5),x=c(-5,-5,1,1),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
 abline(h=1,v=1,lty=2,lwd=0.5,col="grey10")
-shape::Arrows(y0=sub_series$V3.x,y1=sub_series$V3.y,x1=sub_series$V1.y,x0=sub_series$V1.x,arr.adj=1,arr.length = 0.3)
-shape::Arrows(y0=sub_series$V3.y,y1=sub_series$V3,x1=sub_series$V1,x0=sub_series$V1.y,arr.adj=1,arr.length = 0.3)
-points(sub_series$V1.x,sub_series$V3.x,pch=21,bg="black",col="white")
-points(sub_series$V1.y,sub_series$V3.y,pch=21,bg="dodgerblue",col="white")
-points(sub_series$V1,sub_series$V3,pch=21,bg="grey80",col="white")
+shape::Arrows(y0=sub_series$V4.x,y1=sub_series$V4.y,x1=sub_series$V3.y,x0=sub_series$V3.x,arr.adj=1,arr.length = 0.3)
+shape::Arrows(y0=sub_series$V4.y,y1=sub_series$V4,x1=sub_series$V3,x0=sub_series$V3.y,arr.adj=1,arr.length = 0.3)
+points(sub_series$V3.x,sub_series$V4.x,pch=21,bg="black",col="white")
+points(sub_series$V3.y,sub_series$V4.y,pch=21,bg="dodgerblue",col="white")
+points(sub_series$V3,sub_series$V4,pch=21,bg="grey80",col="white")
 samp <- 1:4
-text(sub_series$V1[samp],sub_series$V3[samp],labels=sub_series$pop[samp],adj=c(1,-1),offset=1.5,cex=0.7,col="black")
+text(sub_series$V3[samp],sub_series$V4[samp],labels=sub_series$pop[samp],adj=c(1,-1),offset=1.5,cex=0.7,col="black")
 legend("topright",c("'90s","'00s","'10s"),pch=21,col="white",pt.bg=c("black","dodgerblue","grey80"),bty="n",bg=NA,title="Time period",cex=0.8)
 dev.off()
 
@@ -275,18 +268,23 @@ samp <- 1:3
 #text(sub_series$V3[samp],sub_series$V1[samp],labels=sub_series$pop[samp],adj=c(-0.1,1),offset=1.5,cex=0.7,col="black")
 legend("topright",c("'90s","'00s","'10s"),pch=21,col="white",pt.bg=c("black","dodgerblue","grey80"),bty="n",bg=NA,title="Time period",cex=0.8)
 
-
-pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,ucur/umsy)~pop_no+regime,SR.dat_full,mean,na.rm=F)
+SR.dat_subby <- SR.dat_full[SR.dat_full$n_rec>=2 & SR.dat_full$n>=5,]
+pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+regime,SR.dat_subby,mean,na.rm=F)
+colnames(pop_sub) <- c("pop_no","regime","run_ratio","lrp","msy","u_ratio")
 recent <- pop_sub[pop_sub$regime=="recent",]
 early <- pop_sub[pop_sub$regime=="early",]
 recovering <- pop_sub[pop_sub$regime=="recovering",]
 time_series <- merge(merge(early,recovering,by="pop_no"),recent,by="pop_no")
 time_series$pop <- pop_names[time_series$pop_no]
+pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+recent,SR.dat_subby,mean,na.rm=F)
+colnames(pop_sub) <- c("pop_no","recent","run_ratio","lrp","msy","u_ratio")
+recent <- pop_sub[pop_sub$recent=="recent",]
+
 jpeg(filename="Figures/current status and time-series tr1.jpeg", width=4.5,height=9, units="in", res=600)
 layout(matrix(1:2,nrow=2,ncol=1))
 par(mar=c(4,4,0.1,0.1))
-status <- data.frame("pop"=pop_names[recent$pop_no],"s_over_msy"=recent$V2,"baseline"=recent$V1,"u_over_umsy"=recent$V3)
-plot(NA,ylab=expression(u[2018]/u[MSY]),xlab=expression(S[2018]/S[MSY]),xlim=1.1*range(c(0,2,status$s_over_msy)),ylim=1.1*range(c(0,2,status$u_over_umsy)))
+status <- data.frame("pop"=pop_names[recent$pop_no],"s_over_msy"=recent$msy,"baseline"=recent$run_ratio,"u_over_umsy"=recent$u_ratio)
+plot(NA,ylab=expression(u[cur]/u[MSY]),xlab=expression(S[cur]/0.8*S[MSY]),xlim=1.1*range(c(0,2,status$s_over_msy,3.25)),ylim=1.1*range(c(0,2,status$u_over_umsy)))
 polygon(y=c(-5,1,1,-5),x=c(1,1,40,40),col=adjustcolor("seagreen",1),border=NA,xpd=FALSE)
 polygon(y=c(1,1,20,20),x=c(-5,1,1,-5),col=adjustcolor("tomato",1),border=NA,xpd=FALSE)
 polygon(y=c(1,20,20,1),x=c(1,1,40,40),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
@@ -297,21 +295,30 @@ samp <- sapply(c(0,0.5,1,2),function(x){which.min(abs(status$s_over_msy-x))})
 text(status$s_over_msy[samp],status$u_over_umsy[samp],labels=status$pop[samp],adj=c(0,0),offset=1.5,cex=0.7,col="black")
 Corner_text("(a)","topleft",cex=1)
 
-sub_series <- time_series[c(which.max(time_series$V3.x),which.max(time_series$V1.x-time_series$V1),which.max(time_series$V3.y-time_series$V3),which.max(time_series$V1-time_series$V1.y)),]
-plot(NA,ylab=expression(u[t]/u[MSY]),xlab=expression(S[t]/S[MSY]),xlim=1.1*range(c(0,2,sub_series$V1.x,sub_series$V1.y,sub_series$V1)),ylim=1.1*range(c(0,2,sub_series$V3.x,sub_series$V3.y,sub_series$V3)))
+sub_series <- time_series[c(which.max(time_series$msy),which.min(time_series$msy),which.max(time_series$u_ratio),which.max(time_series$u_ratio.x)),]
+plot(NA,ylab=expression(u[t]/u[MSY]),xlab=expression(S[t]/0.8*S[MSY]),xlim=1.1*range(c(0,2,sub_series$msy.x,sub_series$msy.y,sub_series$msy,3.25)),ylim=1.1*range(c(0,2,sub_series$u_ratio.x,sub_series$u_ratio.y,sub_series$u_ratio)))
 polygon(y=c(-5,1,1,-5),x=c(1,1,40,40),col=adjustcolor("seagreen",1),border=NA,xpd=FALSE)
 polygon(y=c(1,1,20,20),x=c(-5,1,1,-5),col=adjustcolor("tomato",1),border=NA,xpd=FALSE)
 polygon(y=c(1,20,20,1),x=c(1,1,40,40),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
 polygon(y=c(-5,1,1,-5),x=c(-5,-5,1,1),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
 abline(h=1,v=1,lty=2,lwd=0.5,col="grey10")
-shape::Arrows(y0=sub_series$V3.x,y1=sub_series$V3.y,x1=sub_series$V1.y,x0=sub_series$V1.x,arr.adj=1,arr.length = 0.3)
-shape::Arrows(y0=sub_series$V3.y,y1=sub_series$V3,x1=sub_series$V1,x0=sub_series$V1.y,arr.adj=1,arr.length = 0.3)
-points(sub_series$V1.x,sub_series$V3.x,pch=21,bg="black",col="white")
-points(sub_series$V1.y,sub_series$V3.y,pch=21,bg="dodgerblue",col="white")
-points(sub_series$V1,sub_series$V3,pch=21,bg="grey80",col="white")
+shape::Arrows(y0=sub_series$u_ratio.x,y1=sub_series$u_ratio.y,x1=sub_series$msy.y,x0=sub_series$msy.x,arr.adj=1,arr.length = 0.3)
+shape::Arrows(y0=sub_series$u_ratio.y,y1=sub_series$u_ratio,x1=sub_series$msy,x0=sub_series$msy.y,arr.adj=1,arr.length = 0.3)
+points(sub_series$msy.x,sub_series$u_ratio.x,pch=21,bg="black",col="white")
+points(sub_series$msy.y,sub_series$u_ratio.y,pch=21,bg="dodgerblue",col="white")
+points(sub_series$msy,sub_series$u_ratio,pch=21,bg="grey80",col="white")
 samp <- 1:4
-text(sub_series$V1[samp],sub_series$V3[samp],labels=sub_series$pop[samp],adj=c(1,-1),offset=1.5,cex=0.7,col="black")
+text(sub_series$msy[samp],sub_series$u_ratio[samp],labels=sub_series$pop[samp],adj=c(0,1),offset=1.5,cex=0.7,col="black")
 legend("topright",c("'90s","'00s","'10s"),pch=21,col="white",pt.bg=c("black","dodgerblue","grey80"),bty="n",bg=NA,title="Time period",cex=0.8)
 Corner_text("(b)","topleft",cex=1)
 
 dev.off()
+
+pop_sub <- aggregate(cbind(escapement/baseline_spawn,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+recent,SR.dat_full,mean,na.rm=F)
+colnames(pop_sub) <- c("pop_no","recent","baseline","lrp","msy","u_ratio")
+pop_sub$pop <- pop_names[pop_sub$pop_no]
+pop_sub <- pop_sub[pop_sub$recent=='recent',]
+sum(pop_sub$baseline<=1 & pop_sub$msy<=1)
+sum((pop_sub$baseline<=1 & pop_sub$msy>1) | (pop_sub$baseline>1 & pop_sub$msy<=1))
+sum(pop_sub$baseline>1 & pop_sub$msy>1)
+nrow(pop_sub)

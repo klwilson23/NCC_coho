@@ -1,3 +1,4 @@
+library(ggplot2)
 Smsy_priors <- readRDS("Results/Smsy.rds")
 Sgen_priors <- readRDS("Results/Sgen.rds")
 Umsy_priors <- readRDS("Results/Umsy.rds")
@@ -20,11 +21,11 @@ SR.dat$logRS1<-log(SR.dat$RS_E)
 SR.dat$logRS2<-log(SR.dat$RS_2)
 SR.dat$logRS3<-log(SR.dat$RS_3)
 
-baseline_spawn <- sapply(1:n.pops,function(x){mean(SR.dat$escapement[SR.dat$pop_no==x & (SR.dat$year>=(2000)) & (SR.dat$year<=2015)],na.rm=TRUE)})
 pop_names <- unique(SR.dat$population[order(SR.dat$pop_no)])
 
 co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
 co_pops$mean_total<-NA
+years<-seq(1980,2016,1)
 
 for(i in co_pops$pop_no){
   dat<-subset(SR.dat,SR.dat$pop_no==i)
@@ -50,6 +51,9 @@ diag(covarGroups) <- 1
 
 group <- co_pops$group
 Npops <- length(group)
+baseline_spawn <- sapply(1:n.pops,function(x){mean(SR.dat$escapement[SR.dat$pop_no==x & (SR.dat$year>=(2000)) & (SR.dat$year<=2015)],na.rm=TRUE)})
+
+prob_fore <- c(0.025,0.25,0.5,0.75,0.975)
 
 box_fn <- function(mod="random",year_sim=sim_eval,ref_point_label="S(gen)",ref_point=Sgen_priors$mean)
 {
@@ -83,11 +87,11 @@ box_fn <- function(mod="random",year_sim=sim_eval,ref_point_label="S(gen)",ref_p
     axis(2,at=c(20,40,60,80))
     if(j<7)
     {
-      for(i in 1:datamcmc2$Nregs)
+      for(i in 1:5)
         {
         spawn_forecast_1 <- result_forecast_run[,grepl("\\bnew_spawners",mcmc_names) & grepl(paste("\\b,",i,"]",sep=""),mcmc_names)]
         spawn_forecast_1 <- as.matrix(spawn_forecast_1)
-        spawn_forecast_1 <- array(unlist((spawn_forecast_1)),dim=c(n_chains*samples,datamcmc2$sim_eval,datamcmc2$Npops))
+        spawn_forecast_1 <- array(unlist((spawn_forecast_1)),dim=c(n_chains*samples,sim_eval,n.pops))
         spawn_forecast_1 <- spawn_forecast_1[,1:year_sim,]
         spawn_fore_ci <- apply(spawn_forecast_1,c(2,3),quantile,probs=prob_fore)
         spawn_fore_risk <- t(sapply(1:n.pops,function(x){colSums(spawn_forecast_1[,,x]<ref_point[x])}))
@@ -110,11 +114,11 @@ box_fn <- function(mod="random",year_sim=sim_eval,ref_point_label="S(gen)",ref_p
     }
     if(j==7)
       {
-      for(i in 1:datamcmc2$Nregs)
+      for(i in 1:5)
         {
         spawn_forecast_1 <- result_forecast_run[,grepl("\\bnew_spawners",mcmc_names) & grepl(paste("\\b,",i,"]",sep=""),mcmc_names)]
         spawn_forecast_1 <- as.matrix(spawn_forecast_1)
-        spawn_forecast_1 <- array(unlist((spawn_forecast_1)),dim=c(n_chains*samples,datamcmc2$sim_eval,datamcmc2$Npops))
+        spawn_forecast_1 <- array(unlist((spawn_forecast_1)),dim=c(n_chains*samples,sim_eval,n.pops))
         spawn_forecast_1 <- spawn_forecast_1[,1:year_sim,]
         
         spawn_fore_ci <- apply(spawn_forecast_1,c(2,3),quantile,probs=prob_fore)
@@ -171,6 +175,10 @@ df_base$Regulation <- factor(df_base$Regulation,levels=colnames(escape_reg)[c(2,
 
 df_total <- rbind(df,df_msy,df_base)
 
+aggregate(Risk*100~Reference.Point+Regulation+Model,df_total,mean)
+aggregate(Risk*100~Reference.Point+Region+Model,df_total[df_total$Regulation=='10-year average',],mean)
+aggregate(Risk*100~Reference.Point+Regulation+Model,df_total[df_total$Regulation%in%c('10-year average',"50% AK & BC reduction","No harvest"),],mean)
+aggregate(Ratio~Reference.Point+Regulation+Model,df_total[df_total$Regulation%in%c('10-year average',"50% AK & BC reduction","No harvest"),],mean)
 dodge <- position_dodge(width = 0.9)
 margins <- c(0.25,0.25,0.25,0.5)
 ggplot(df,aes(x=Regulation,y=Risk*100,fill=Regulation)) +
@@ -229,3 +237,28 @@ ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=100*Risk,fill
   scale_fill_brewer(type="qual",palette=3,direction = -1) +
   theme(legend.position="top",strip.text.y = element_text(size=6.5),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"))
 ggsave("Figures/scenario comparisons risk coastal.jpeg",width=5.5,height=7,units="in")
+
+
+s_over_msy <- sapply(1:n.pops,function(x){sum(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]<=(0.8*Smsy_priors$mean[x]),na.rm=TRUE)/sum(!is.na(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]))})
+s_over_gen <- sapply(1:n.pops,function(x){sum(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]<=(Sgen_priors$mean[x]),na.rm=TRUE)/sum(!is.na(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]))})
+s_over_base <- sapply(1:n.pops,function(x){sum(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]<=(baseline_spawn[x]),na.rm=TRUE)/sum(!is.na(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]))})
+s_msy_ratio <- sapply(1:n.pops,function(x){mean(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]/(0.8*Smsy_priors$mean[x]),na.rm=TRUE)})
+s_gen_ratio <- sapply(1:n.pops,function(x){mean(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]/(Sgen_priors$mean[x]),na.rm=TRUE)})
+s_base_ratio <- sapply(1:n.pops,function(x){mean(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]/(baseline_spawn[x]),na.rm=TRUE)})
+
+pop_risks <- data.frame("pop"=pop_names,"region"=group_names[group],"s_over_gen"=s_over_gen,"s_over_msy"=s_over_msy,"s_over_base"=s_over_base,s_gen_ratio,s_msy_ratio,s_base_ratio)
+
+aggregate(100*(1-s_base_ratio)~region,pop_risks,mean)
+aggregate(100*(1-s_base_ratio)~region,pop_risks,range)
+
+colSums(pop_risks[,3:5]>0,na.rm=TRUE)
+sum((pop_risks[,4]*pop_risks[,5])>0,na.rm=TRUE)
+sum((pop_risks[,4]>0 & pop_risks[,5]<0) | (pop_risks[,4]<0 & pop_risks[,5]>0),na.rm=TRUE)
+
+colSums(pop_risks[,3:5]==1,na.rm=TRUE)
+sum((pop_risks[,4]*pop_risks[,5])==1,na.rm=TRUE)
+colSums(pop_risks[,3:5]==0,na.rm=TRUE)
+
+SR.dat_predict[SR.dat_predict$population=="east_arm",]
+SR.dat_predict[SR.dat_predict$population=="nias",]
+pop_risks[pop_risks$s_msy_ratio<1,]

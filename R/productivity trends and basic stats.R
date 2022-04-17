@@ -287,6 +287,21 @@ lci75sk<-mu_alphaSkeena[,2]
 uci75nass<-mu_alphaNass[,4]
 lci75nass<-mu_alphaNass[,2]
 
+years <- (nrow(mu_alphaSkeena)-1):nrow(mu_alphaSkeena)
+mypost <- as.matrix(resultSR_B3)
+
+prod_decline <- function(x)
+{
+  x_perc <- 100*((rowMeans(x[,years])-rowMeans(x))/(rowMeans(x)))
+  return(c(mean(x_perc),quantile(x_perc,probs=c(0.025,0.5,0.975))))
+}
+hg <- prod_decline(exp(mypost[,grepl("\\bmu_lalpha",mcmc_names) & grepl("\\b,1]",mcmc_names)]))
+nass <- prod_decline(exp(mypost[,grepl("\\bmu_lalpha",mcmc_names) & grepl("\\b,2]",mcmc_names)]))
+skeena <- prod_decline(exp(mypost[,grepl("\\bmu_lalpha",mcmc_names) & grepl("\\b,3]",mcmc_names)]))
+hec <- prod_decline(exp(mypost[,grepl("\\bmu_lalpha",mcmc_names) & grepl("\\b,4]",mcmc_names)]))
+inner <- prod_decline(exp(mypost[,grepl("\\bmu_lalpha",mcmc_names) & grepl("\\b,5]",mcmc_names)]))
+cc <- prod_decline(exp(mypost[,grepl("\\bmu_lalpha",mcmc_names) & grepl("\\b,6]",mcmc_names)]))
+
 100*(mean(exp(mu_alphaNass[(nrow(mu_alphaNass)-1):nrow(mu_alphaNass),3]))-mean(exp(mu_alphaNass[,3])))/(mean(exp(mu_alphaNass[,3])))
 100*(mean(exp(mu_alphaSkeena[(nrow(mu_alphaSkeena)-1):nrow(mu_alphaSkeena),3]))-mean(exp(mu_alphaSkeena[,3])))/(mean(exp(mu_alphaSkeena[,3])))
 100*(mean(exp(mu_alphaNC[(nrow(mu_alphaNC)-1):nrow(mu_alphaNC),3]))-mean(exp(mu_alphaNC[,3])))/(mean(exp(mu_alphaNC[,3])))
@@ -331,7 +346,7 @@ plot(1,1,cex=0,axes=FALSE, xlab="",ylab="",xlim=c(1980,2016),ylim=y_range)
 polygon(x, y1cc,  col = "grey90", lty = 2, lwd = 2, border = NA)
 polygon(x, y2cc,  col = "grey82", lty = 2, lwd = 2, border = NA)
 
-text(2000,-0.5,"Area 7-10",font=2)
+text(2000,-0.5,"Central Coast (South)",font=2)
 
 axis(1,labels=TRUE,at=c(1980,1985,1990,1995,2000,2005,2010,2015))
 axis(2,las=1)
@@ -339,17 +354,17 @@ axis(2,las=1)
 for(i in 1:length(cc_south)){
   par(new=TRUE)
   plot(a.pops_med[,1],a.pops_med[,(cc_south[i]+1)],axes=FALSE,ylab="",xlab="",
-       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[cc_south[i],5]))
+       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[cc_south[i],5]),pch=21,bg=adjustcolor("white",0.5))
   #par(new=TRUE)
   #plot(a.pops_med[,1],a.pops_med[,(cc_south[i]+1)],axes=FALSE,ylab="",xlab="",
   #     xlim=c(1980,2016),ylim=c(0,10),lwd=0.1*log(co_pops[cc_south[i],5]),type='l')
 }
 
-legend("topright",c("100", "1000","10000","50000"),pt.cex=sizes,pch=1,title="mean spawners")
+legend("topright",c("100", "1000","10000","50000"),pt.cex=sizes,pch=21,title="mean spawners",pt.bg=adjustcolor("white",0.5))
 
 lines(years,mu_alphaCC[,3],type="l", lwd=3, lty=1, col=cols[1])
 
-mtext(expression("Survival index - Ricker ln" ~~ alpha ~ ""),side=2,line=2.8, adj=-1.2,font=2,cex=1.2)
+mtext(expression("Intrinsic recruitment productivity (ln" ~~ alpha ~~ ")"),side=2,line=2.8, adj=-15,font=2,cex=1.2)
 
 
 # Hecate Lowlands - Areas 5-6
@@ -363,12 +378,12 @@ axis(2,las=1,labels=FALSE)
 for(i in 1:length(hec_low)){
   par(new=TRUE)
   plot(a.pops_med[,1],a.pops_med[,(hec_low[i]+1)],axes=FALSE,ylab="",xlab="",
-       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[hec_low[i],5]))
+       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[hec_low[i],5]),pch=21,bg=adjustcolor("white",0.5))
 }
 
 lines(years,mu_alphaHec[,3],type="l", lwd=3, lty=1, col=cols[2])
 
-text(2000,-0.5,"Hecate Lowlands - Area 5/6",font=2)
+text(2000,-0.5,"Hecate Lowlands",font=2)
 
 # Area 6 - Inner Waters
 plot(1,1,cex=0,axes=FALSE, xlab="",ylab="",xlim=c(1980,2016),ylim=y_range)
@@ -381,12 +396,12 @@ axis(2,las=1,labels=FALSE)
 for(i in 1:length(nc_inner)){
   par(new=TRUE)
   plot(a.pops_med[,1],a.pops_med[,(nc_inner[i]+1)],axes=FALSE,ylab="",xlab="",
-       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[nc_inner[i],5]))
+       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[nc_inner[i],5]),pch=21,bg=adjustcolor("white",0.5))
 }
 
 lines(years,mu_alphaNC[,3],type="l", lwd=3, lty=1, col=cols[3])
 
-text(2000,-0.5,"Area 6 - Inner Waters",font=2)
+text(2000,-0.5,"Inner Waters",font=2)
 
 # Haida Gwaii - Area 2E
 plot(1,1,cex=0,axes=FALSE, xlab="",ylab="",xlim=c(1980,2016),ylim=y_range)
@@ -399,11 +414,11 @@ axis(2,las=1)
 for(i in 1:length(hg)){
   par(new=TRUE)
   plot(a.pops_med[,1],a.pops_med[,(hg[i]+1)],axes=FALSE,ylab="",xlab="",
-       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[hg[i],5]))
+       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[hg[i],5]),pch=21,bg=adjustcolor("white",0.5))
 }
 
 lines(years,mu_alphaHG[,3],type="l", lwd=3, lty=1, col=cols[4])
-text(2000,-0.5,"Haida Gwaii - Area 2E",font=2)
+text(2000,-0.5,"Haida Gwaii",font=2)
 
 # Skeena
 plot(1,1,cex=0,axes=FALSE, xlab="",ylab="",xlim=c(1980,2016),ylim=y_range)
@@ -416,11 +431,11 @@ axis(2,las=1,labels=FALSE)
 for(i in 1:length(skeena)){
   par(new=TRUE)
   plot(a.pops_med[,1],a.pops_med[,(skeena[i]+1)],axes=FALSE,ylab="",xlab="",
-       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[skeena[i],5]))
+       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[skeena[i],5]),pch=21,bg=adjustcolor("white",0.5))
 }
 
 lines(years,mu_alphaSkeena[,3],type="l", lwd=3, lty=1, col=cols[5])
-text(2000,-0.5,"Skeena - Area 4",font=2)
+text(2000,-0.5,"Skeena Watershed",font=2)
 
 # Nass
 plot(1,1,cex=0,axes=FALSE, xlab="",ylab="",xlim=c(1980,2016),ylim=y_range)
@@ -433,10 +448,10 @@ axis(2,las=1,labels=FALSE)
 for(i in 1:length(nass)){
   par(new=TRUE)
   plot(a.pops_med[,1],a.pops_med[,(nass[i]+1)],axes=FALSE,ylab="",xlab="",
-       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[nass[i],5]))
+       xlim=c(1980,2016),ylim=y_range,cex=0.2*log(co_pops[nass[i],5]),pch=21,bg=adjustcolor("white",0.5))
 }
 
 lines(years,mu_alphaNass[,3],type="l", lwd=3, lty=1, col=cols[6])
-text(2000,-0.5,"Nass - Area 3",font=2)
+text(2000,-0.5,"Nass Watershed",font=2)
 
 dev.off()
