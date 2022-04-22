@@ -199,8 +199,8 @@ SR.dat_full$usr <- 0.8*(Smsy_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$lrp <- (Sgen_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$ucur <- ifelse(!is.na(SR.dat_full$er_2),SR.dat_full$er_2,SR.dat_full$er_E)
 SR.dat_full$umsy <- (Umsy_priors$mean)[SR.dat_full$pop_no]
-SR.dat_full$recent <- ifelse(SR.dat_full$year>=1990 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
-SR.dat_full$regime <- ifelse(SR.dat_full$year>=1990 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
+SR.dat_full$recent <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
+SR.dat_full$regime <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
 
 nsamps <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_full$pop_no==x]))})
 n_rec <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_full$pop_no==x & SR.dat_full$regime=='recent']))})
@@ -253,18 +253,17 @@ dev.off()
 
 sub_series <- time_series
 par(mar=c(4,4,0.1,0.1))
-plot(NA,xlab="u(t) / u(MSY)",ylab="S(t) / S(MSY)",ylim=1.1*range(c(0,2,sub_series$V1.x,sub_series$V1.y,sub_series$V1)),xlim=1.1*range(c(0,2,sub_series$V3.x,sub_series$V3.y,sub_series$V3)))
-polygon(x=c(-5,1,1,-5),y=c(1,1,40,40),col=adjustcolor("seagreen",1),border=NA,xpd=FALSE)
-polygon(c(1,1,20,20),c(-5,1,1,-5),col=adjustcolor("tomato",1),border=NA,xpd=FALSE)
-polygon(c(1,20,20,1),c(1,1,40,40),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
-polygon(c(-5,1,1,-5),c(-5,-5,1,1),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
+plot(NA,ylab=expression(u[t]/u[MSY]),xlab=expression(S[t]/S[MSY]),xlim=1.1*range(c(0,2,sub_series$V3.x,sub_series$V3.y,sub_series$V3)),ylim=1.1*range(c(0,2,sub_series$V4.x,sub_series$V4.y,sub_series$V4)))
+polygon(y=c(-5,1,1,-5),x=c(1,1,40,40),col=adjustcolor("seagreen",1),border=NA,xpd=FALSE)
+polygon(y=c(1,1,20,20),x=c(-5,1,1,-5),col=adjustcolor("tomato",1),border=NA,xpd=FALSE)
+polygon(y=c(1,20,20,1),x=c(1,1,40,40),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
+polygon(y=c(-5,1,1,-5),x=c(-5,-5,1,1),col=adjustcolor("orange",1),border=NA,xpd=FALSE)
 abline(h=1,v=1,lty=2,lwd=0.5,col="grey10")
-shape::Arrows(x0=sub_series$V3.x,x1=sub_series$V3.y,y1=sub_series$V1.y,y0=sub_series$V1.x,arr.adj=1,arr.length = 0.3)
-shape::Arrows(x0=sub_series$V3.y,x1=sub_series$V3,y1=sub_series$V1,y0=sub_series$V1.y,arr.adj=1,arr.length = 0.3)
-points(sub_series$V3.x,sub_series$V1.x,pch=21,bg="black",col="white")
-points(sub_series$V3.y,sub_series$V1.y,pch=21,bg="dodgerblue",col="white")
-points(sub_series$V3,sub_series$V1,pch=21,bg="grey80",col="white")
-samp <- 1:3
+shape::Arrows(y0=sub_series$V4.x,y1=sub_series$V4.y,x1=sub_series$V3.y,x0=sub_series$V3.x,arr.adj=1,arr.length = 0.3)
+shape::Arrows(y0=sub_series$V4.y,y1=sub_series$V4,x1=sub_series$V3,x0=sub_series$V3.y,arr.adj=1,arr.length = 0.3)
+points(sub_series$V3.x,sub_series$V4.x,pch=21,bg="black",col="white")
+points(sub_series$V3.y,sub_series$V4.y,pch=21,bg="dodgerblue",col="white")
+points(sub_series$V3,sub_series$V4,pch=21,bg="grey80",col="white")
 #text(sub_series$V3[samp],sub_series$V1[samp],labels=sub_series$pop[samp],adj=c(-0.1,1),offset=1.5,cex=0.7,col="black")
 legend("topright",c("'90s","'00s","'10s"),pch=21,col="white",pt.bg=c("black","dodgerblue","grey80"),bty="n",bg=NA,title="Time period",cex=0.8)
 

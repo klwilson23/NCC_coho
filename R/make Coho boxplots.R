@@ -238,6 +238,19 @@ ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=100*Risk,fill
   theme(legend.position="top",strip.text.y = element_text(size=6.5),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"))
 ggsave("Figures/scenario comparisons risk coastal.jpeg",width=5.5,height=7,units="in")
 
+library(dplyr)
+SR.dat_temp <- SR.dat_full[!is.na(SR.dat_full$escapement),] %>%
+  group_by(pop_no) %>%
+  slice(which.max(year))
+SR.dat_temp$lrp <- SR.dat_temp$escapement/Sgen_priors$mean
+SR.dat_temp$usr <- SR.dat_temp$escapement/(0.8*Smsy_priors$mean)
+SR.dat_temp$bratio <- SR.dat_temp$escapement/baseline_spawn
+SR.dat_temp$umsy <- ifelse(!is.na(SR.dat_temp$er_2),SR.dat_temp$er_2,SR.dat_temp$er_E)/Umsy_priors$mean
+SR.dat_temp <- SR.dat_temp[SR.dat_temp$year>=2017,]
+sum(SR.dat_temp$lrp<=1)/nrow(SR.dat_temp)
+sum(SR.dat_temp$usr<=1 & SR.dat_temp$lrp >1)/nrow(SR.dat_temp)
+sum(SR.dat_temp$bratio<=1)/nrow(SR.dat_temp)
+sum(SR.dat_temp$umsy>=1)/nrow(SR.dat_temp)
 
 s_over_msy <- sapply(1:n.pops,function(x){sum(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]<=(0.8*Smsy_priors$mean[x]),na.rm=TRUE)/sum(!is.na(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]))})
 s_over_gen <- sapply(1:n.pops,function(x){sum(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]<=(Sgen_priors$mean[x]),na.rm=TRUE)/sum(!is.na(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]))})
