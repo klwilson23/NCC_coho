@@ -314,7 +314,7 @@ group_names <- c("Central Coast (South)","Hecate Lowlands","Inner Waters","Haida
 group_names <- group_names[c(4,6,5,2,3,1)]
 SR.dat$group <- co_pops$group[match(SR.dat$population,co_pops$population)]
 SR.dat$region <- group_names[SR.dat$group]
-SR.dat[SR.dat$region=='Nass',]
+
 SR_agg <- SR.dat %>%
   group_by(population) %>%
   mutate(escapement_mean=ifelse(is.na(escapement),mean(escapement,na.rm=TRUE),escapement)) %>%

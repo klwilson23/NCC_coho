@@ -59,4 +59,6 @@ df_full <-merge(SR_regional,log_alpha,by.x=c("year","region"),by.y=c("year","reg
 df_full$x <- st_coordinates(df_full)[,1]
 df_full$y <- st_coordinates(df_full)[,2]
 df_full$crs <- st_crs(df_full)[[1]]
-write.csv(df_full,"Data/time-varying ocean entry.csv",row.names=FALSE)
+df_full <- as.data.frame(df_full)
+head(df_full)
+write.csv(df_full,"Data/time-varying ocean entry.csv",row.names=FALSE,quote=TRUE)
