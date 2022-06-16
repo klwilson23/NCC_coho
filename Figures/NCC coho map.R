@@ -7,6 +7,7 @@
 
 buffer <- 25000
 
+library(dbplyr)
 library(bcdata)
 library(dplyr)
 library(bcmaps)
@@ -20,6 +21,8 @@ library(riverdist) # to snap points to River --> Not done here
 library(bcmapsdata)
 library(viridis)
 library(ggnewscale)
+library(tidyr)
+
 #library(USAboundaries)
 
 # Set plot box.  Set Port Hardy as centre and box is 20km to each side
@@ -59,12 +62,45 @@ rivers_in_plot_area <- bcdc_query_geodata('f7dac054-efbf-402f-ab62-6fc4b32a619e'
   collect() %>%                           #Extracts the data
   st_intersection(plot_area_ncc)             #Where it intersects with plot line
 
-rivernames <- NCC_coho$population
-rivers_ncc <- rivers_in_plot_area %>% filter(GNIS_NAME_1 %in% rivernames)
+bcdc_get_record("https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-watersheds-groups")
+watersheds <- bcdc_query_geodata('51f20b1a-ab75-42de-809d-bf415a0f9c62') %>%
+  filter(INTERSECTS(plot_area_ncc)) %>%      # not sure about this line
+  collect() %>%                           #Extracts the data
+  st_intersection(plot_area_ncc)             #Where it intersects with plot line
 
-ncc_wshed <- rivers_ncc %>%
-  filter(WATERSHED_GROUP_ID%in%unique(rivers_ncc$WATERSHED_GROUP_ID))  %>% 
-  filter(LEFT_RIGHT_TRIBUTARY!="NONE")
+bcdc_get_record("https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-stream-network")
+# all_streams <- bcdc_query_geodata("92344413-8035-4c08-b996-65a9b3f62fca") %>%
+#    filter(INTERSECTS(plot_area_ncc)) %>%
+#    filter(STREAM_ORDER%in% c(3,4,5)) %>%
+#    collect() %>%                           #Extracts the data
+#    st_intersection(plot_area_ncc)             #Where it intersects with plot line
+
+rivers_index <- data_point_labels %>%
+  st_nearest_feature(rivers_in_plot_area,data_point_labels)
+rivers_ncc <- rivers_in_plot_area[rivers_index,]
+
+rivernames <- rivers_ncc$GNIS_NAME_1
+rivernames2 <- data_point_labels$population
+
+major_riverGroup <- substr(rivers_ncc$FWA_WATERSHED_CODE,1,3)
+major_riverID <- paste(major_riverGroup,paste(rep("000000",20),collapse="-"),sep="-")
+major_groups <- substr(rivers_in_plot_area$FWA_WATERSHED_CODE,1,3)
+major_riverID <- ifelse(as.numeric(major_riverGroup)>=900,rivers_ncc$FWA_WATERSHED_CODE,"x")
+
+nass <- rivers_in_plot_area[rivers_in_plot_area$GNIS_NAME_1%in%"Nass River" & rivers_in_plot_area$WATERSHED_GROUP_CODE=="LNAR",]
+skeena <- rivers_in_plot_area[rivers_in_plot_area$GNIS_NAME_1%in%"Skeena River" & rivers_in_plot_area$WATERSHED_GROUP_CODE=="LSKE",]
+
+major_rivers <- rivers_in_plot_area[match(major_riverID,rivers_in_plot_area$FWA_WATERSHED_CODE,nomatch = 0),]
+major_rivers <- dplyr::bind_rows(major_rivers,nass,skeena)
+
+data_point_labels$river_name <- rivernames
+major_riverGroup[which(data_point_labels$population=="lachmach")] <- "500"
+data_point_labels$waterbodyid <- ifelse(as.numeric(major_riverGroup)>=900,rivers_ncc$FWA_WATERSHED_CODE,ifelse(as.numeric(major_riverGroup)==500,nass$FWA_WATERSHED_CODE,skeena$FWA_WATERSHED_CODE))
+data_point_labels$drainage <- ifelse(as.numeric(major_riverGroup)>=900,rivers_ncc$FWA_WATERSHED_CODE,ifelse(as.numeric(major_riverGroup)==500,"Nass","Skeena"))
+#major_rivers <- rivers_in_plot_area %>%
+#  filter(LEFT_RIGHT_TRIBUTARY=='NONE') %>%
+#  filter(WATERSHED_KEY%in%unique(rivers_ncc$WATERSHED_KEY))
+#major_rivers <- distinct(major_rivers)
 
 ## --- Collect Mapping layers
 # below grabs the coastline data within plot box
@@ -88,6 +124,32 @@ lakes_in_plot_area <- bcdc_query_geodata("freshwater-atlas-lakes") %>%
 ocean_colour <- bc_neighbours() %>% 
   filter(type=="Ocean") %>% 
   st_intersection(plot_area_ncc)
+ocean <- bc_neighbours() %>% 
+  filter(type=="Ocean")
+
+river_mouth <- major_rivers %>%
+  group_by(BLUE_LINE_KEY) %>%
+  st_nearest_points(ocean)
+pts <- st_cast(river_mouth, "POINT")[seq(2, 2*length(river_mouth), 2)]
+
+major_rivers$ocean_entry <- pts
+data_point_labels$ocean_entry <- major_rivers$ocean_entry[match(data_point_labels$waterbodyid,major_rivers$FWA_WATERSHED_CODE,nomatch = NA)]
+data_point_labels$ocean_entry[is.na(data_point_labels$ocean_entry)] <- ifelse(data_point_labels$drainage=='Skeena' & is.na(data_point_labels$ocean_entry),major_rivers$ocean_entry[major_rivers$GNIS_NAME_1%in%"Skeena River"],major_rivers$ocean_entry[major_rivers$GNIS_NAME_1%in%"Nass River"])
+
+
+ggplot(data=watersheds) +
+  geom_sf(data = watersheds, fill = "grey90") +
+  #geom_sf(data=rivers_ncc,lwd=1.5,colour = "black") +
+  geom_sf(data=major_rivers,lwd=1,colour = "black") +
+  geom_sf(data=pts,pch=22,cex=2,bg='seagreen') +
+  geom_sf(data=data_points,pch=21,cex=1.5,bg='orange')+
+  scale_shape_manual(values=c("Rivers"=21,"Ocean entry"=22),breaks=c("Rivers","Ocean entry"))
+
+ggplot(data=watersheds) +
+  geom_sf(data = watersheds, fill = "grey90") +
+  #geom_sf(data=rivers_ncc,lwd=1.5,colour = "black") +
+  geom_sf(data=major_rivers,lwd=1,colour = "black") +
+  geom_sf(data=data_point_labels$ocean_entry[data_point_labels$population=="bella_coola"],pch=22,cex=2,bg='seagreen')
 
 #alaska <- bcmaps::bc_neighbours() %>% st_intersection(plot_area_ncc)
 #alaska_full <- bcmaps::bc_neighbours()
@@ -140,6 +202,7 @@ ncc_map <- ggplot() +
   #scale_fill_brewer(name="Last logged year",palette = "Paired",direction=-1) +
   geom_sf(data = rivers_in_plot_area, colour = "lightblue3") +  #Plot Rivers
   geom_sf(data = rivers_ncc, colour = "lightblue3") +
+  #geom_sf(data=pts,pch=22,bg="seagreen") +
   #geom_sf(data = lakes_in_plot_area, fill = "lightblue1") +     #Plot Lakes
   ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=population),size=1.5, force = 1, nudge_x = -2, seed = 10)+ #Add labels
   coord_sf(expand = FALSE) +                                    #Expands box to axes
@@ -164,15 +227,16 @@ ncc_bec <- ggplot() +
   geom_sf(data = rivers_ncc, colour = "#1f78b4") +
   geom_sf(data = lakes_in_plot_area, fill = "#1f78b4",colour=NA) +     #Plot Lakes
   geom_sf(data = coast_line, fill = NA) +                 #Plot coastline
-  
   #scale_fill_viridis(name = "Last logging year",option="viridis",direction=-1) +
   #scale_fill_gradient2(name="Last logged year",midpoint = 1920, low="darkgreen",mid="olivedrab3",high="goldenrod1",space="Lab") +
   scale_fill_brewer(name="Biogeoclimatic zone",palette = "YlGn",direction=-1) +
   scale_colour_brewer(name="Biogeoclimatic zone",palette = "YlGn",direction=-1) +
+  #scale_shape_manual(name="Waters",values=c("Rivers"=20,"Ocean entry"=21),breaks=c("Rivers","Ocean entry")) +
   #scale_fill_brewer(name="Last logged year",palette = "Paired",direction=-1) +
   #ggsflabel::geom_sf_label_repel(data=data_point_labels[data_point_labels$population %in% c("Neekas River","Bella Coola River"),],aes(label=population),size=1.5, force = 1, nudge_x = -2, seed = 10)+ #Add labels
   ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=population),size=1.5, force = 1, nudge_x = -2, seed = 10,max.overlaps=20)+ #Add labels
   geom_sf(data=data_point_labels,pch=21,fill="white") +
+  #geom_sf(data=pts,pch=22,fill="seagreen") +
   geom_sf(data = plot_area_ncc, alpha = 0,colour='black') +        #Plot area box
   coord_sf(expand = FALSE) +                                    #Expands box to axes
   xlab('Longitude') + ylab('Latitude') +                        #Axis titles
@@ -222,3 +286,78 @@ ncc_inset <- ggdraw(ncc_bec) +
     height = 0.2)
 ggsave('Figures/ncc_coho_bec.pdf',plot=ncc_inset,width = 6, height = 7,units='in',dpi=800)
 ggsave('Figures/ncc_coho_bec.jpeg',plot=ncc_inset,width = 6, height = 7,units='in',dpi=800)
+
+# match coho populations to their ocean entry
+
+SR.dat<-read.table("Data/Coho_Brood_MASTER.txt", header=T)
+SR.dat_full <- SR.dat
+SR.dat<-subset(SR.dat,SR.dat$year<2017)
+
+SR.dat$ocean_entry <- data_point_labels$ocean_entry[match(SR.dat$population,data_point_labels$population)]
+
+SR.dat$logRS1<-log(SR.dat$RS_E)
+SR.dat$logRS2<-log(SR.dat$RS_2)
+SR.dat$logRS3<-log(SR.dat$RS_3)
+SR.dat$Ut <- ifelse(!is.na(SR.dat$er_2),SR.dat$er_2,SR.dat$er_E)
+
+co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
+co_pops$mean_total<-NA
+
+for(i in co_pops$pop_no){
+  dat<-subset(SR.dat,SR.dat$pop_no==i)
+  co_pops[i,5]<-mean(na.omit(dat$total_runE))
+}
+
+### lumping Rivers Smith Inlet with Area 7-8
+co_pops[which(co_pops$group==7),4]<-6
+group_names <- c("Central Coast (South)","Hecate Lowlands","Inner Waters","Haida Gwaii","Skeena","Nass")
+group_names <- group_names[c(4,6,5,2,3,1)]
+SR.dat$group <- co_pops$group[match(SR.dat$population,co_pops$population)]
+SR.dat$region <- group_names[SR.dat$group]
+SR.dat[SR.dat$region=='Nass',]
+SR_agg <- SR.dat %>%
+  group_by(population) %>%
+  mutate(escapement_mean=ifelse(is.na(escapement),mean(escapement,na.rm=TRUE),escapement)) %>%
+  ungroup()
+
+SR_agg <- SR_agg %>%
+  group_by(year,region) %>%
+  mutate(total=sum(escapement_mean,na.rm=TRUE)) %>%
+  ungroup()
+SR_agg$prop <- pmax(0,SR_agg$escapement_mean/SR_agg$total,na.rm=TRUE)
+SR_agg$x <- st_coordinates(SR_agg$ocean_entry)[,1]
+SR_agg$y <- st_coordinates(SR_agg$ocean_entry)[,2]
+
+SR_agg$mn_x <- SR_agg$x * SR_agg$prop
+SR_agg$mn_y <- SR_agg$y * SR_agg$prop
+
+SR_agg <- SR_agg %>%
+  group_by(year,region) %>%
+  mutate(new_x=sum(mn_x),new_y=sum(mn_y)) %>%
+  ungroup()
+ggplot(data=watersheds) +
+  geom_sf(data = watersheds, fill = "grey90") +
+  #geom_sf(data=rivers_ncc,lwd=1.5,colour = "black") +
+  geom_sf(data=major_rivers,lwd=1,colour = "black") +
+  geom_sf(data=SR_agg$ocean_entry,bg='seagreen',pch=22,cex=2)
+
+
+SR_agg <- SR_agg[,colnames(SR_agg)!="ocean_entry"]
+SR_agg_def <- SR_agg
+SR_agg <- st_as_sf(SR_agg,coords=c("new_x","new_y"),crs=sf::st_crs(SR.dat$ocean_entry))
+
+#SR_agg <- SR_agg %>% group_by(population) %>% slice(1) %>% ungroup()
+closest_mouth <- SR_agg %>%
+  st_nearest_points(ocean)
+
+pts <- st_cast(closest_mouth, "POINT")[seq(2, 2*length(closest_mouth), 2)]
+st_geometry(SR_agg_def) <- pts
+SR_agg_def <- st_as_sf(SR_agg_def)
+
+ggplot(data=watersheds) +
+  geom_sf(data = watersheds, fill = "grey90") +
+  #geom_sf(data=rivers_ncc,lwd=1.5,colour = "black") +
+  geom_sf(data=major_rivers,lwd=1,colour = "black") +
+  geom_sf(data=SR_agg_def,aes(fill=region),pch=21,cex=1.5)
+ggsave(filename="Figures/time_varying_ocean_entry.jpeg",units="in",height=7,width=5,dpi=600)
+saveRDS(SR_agg_def,file="Data/time_varying_ocean_entry.rds")
