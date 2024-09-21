@@ -6,6 +6,11 @@
 require(rjags)
 require(R2jags)
 library(runjags)
+
+thinning <- 200
+samples <- 1500
+n_chains <- 4
+
 SR.dat<-read.table("Data/Coho_Brood_MASTER.txt", header=T)
 SR.dat<-subset(SR.dat,SR.dat$year<2017)
 
@@ -226,12 +231,6 @@ co_pops
 ### this seems to be working to produce reasonable 95% CIs from the MCMC 
 
 
-
-
-
-
-
-
 ############################################################################
 ####  visualizing the results
 #######################################
@@ -337,6 +336,62 @@ sizes[4]<-log(50000)*0.2
 
 
 y_range <- pmin(10,range(mu_alphaCC,mu_alphaHec,mu_alphaHG,mu_alphaNC,mu_alphaNass,mu_alphaSkeena,a.pops_med[,-1],na.rm=TRUE))
+years<-seq(1980,2016,1)
+### this is the region for each population
+hg<-which(co_pops$group==1)
+nass<-which(co_pops$group==2)
+skeena<-which(co_pops$group==3)
+hec_low<-which(co_pops$group==4)
+nc_inner<-which(co_pops$group==5)
+cc_south<-which(co_pops$group==6)
+
+library(tidyverse)
+str(a.pops_med)
+str(SR.dat)
+a.pops_df <- as.data.frame(a.pops_med)
+colnames(a.pops_df) <- c("year",co_pops$population)
+a.pops_long <- pivot_longer(a.pops_df,cols=-1,values_to = "ln_a",names_to="population")
+
+df_coho <- left_join(SR.dat,a.pops_long,by=c("year","population"))
+df_coho$mean_escapement <- co_pops$mean_total[match(df_coho$population,co_pops$population)]
+df_coho$region_no <- co_pops$group[match(df_coho$population,co_pops$population)]
+df_coho$Region[df_coho$region_no==1] <- "Haida Gwaii"
+df_coho$Region[df_coho$region_no==2] <- "Nass"
+df_coho$Region[df_coho$region_no==3] <- "Skeena"
+df_coho$Region[df_coho$region_no==4] <- "Hecate Lowlands"
+df_coho$Region[df_coho$region_no==5] <- "Inner Waters"
+df_coho$Region[df_coho$region_no==6] <- "Central Coast (South)"
+df_coho$Year <- df_coho$year
+
+regional_prod <- rbind(cbind("Year"=years,"Region"="Nass",as.data.frame(mu_alphaNass)),
+                       cbind("Year"=years,"Region"="Skeena",as.data.frame(mu_alphaSkeena)),
+                       cbind("Year"=years,"Region"="Inner Waters",as.data.frame(mu_alphaNC)),
+                       cbind("Year"=years,"Region"="Haida Gwaii",as.data.frame(mu_alphaHG)),
+                       cbind("Year"=years,"Region"="Hecate Lowlands",as.data.frame(mu_alphaHec)),
+                       cbind("Year"=years,"Region"="Central Coast (South)",as.data.frame(mu_alphaCC)))
+row.names(regional_prod) <- NULL
+regional_prod$Region <- factor(regional_prod$Region,levels=c("Haida Gwaii","Nass","Skeena","Hecate Lowlands","Inner Waters","Central Coast (South)"))
+df_coho$Region <- factor(df_coho$Region,levels=c("Haida Gwaii","Nass","Skeena","Hecate Lowlands","Inner Waters","Central Coast (South)"))
+margins <- c(0.5,0.5,0.5,1.1)
+margins <- c(0.1,1,0.1,0.1)
+
+ggplot(data=regional_prod,aes(x=Year,y=`50%`,group=Region)) + 
+  geom_ribbon(data=regional_prod,aes(x=Year,ymax=`97.5%`,ymin=`2.5%`,group=Region),alpha=0.5) +
+  geom_point(data=df_coho,aes(x=Year,y=ln_a,size=mean_escapement),pch=21,col="black",fill="white") +
+  geom_line(data=regional_prod,aes(x=Year,y=`50%`,colour=Region),lwd=1) +
+  facet_wrap(~Region,ncol=3)+
+  theme_minimal() +
+  scale_size_area(name="Mean spawners",transform="identity",limits=(c(100,50000)),
+                         breaks=(c(100,1000,10000,50000)),
+                         labels = c("100","1,000","10,000","50,000"))+
+  #scale_size(name="Escapement",transform="identity",breaks=c(10,100,1000,10000,50000))+
+  scale_colour_brewer(name="Region",palette = "Paired",direction=1) +
+  theme(legend.position = "top",strip.text.x = element_text(hjust = -0),plot.margin=unit(margins,"line")) +
+  xlab("Year") + ylab("Intrinsic recruitment productivity (ln \U03b1)")+
+  theme(text = element_text(size=10),axis.text = element_text(size=10),legend.title = element_text(size = 9),legend.text = element_text(size=7)) +
+  theme(legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(0.5, "lines"),legend.margin = margin(c(0,1,0,0),unit="lines"))
+
+ggsave("Figures/CO_alpha_trend_pops_NCC gg.jpeg", width = 7, height=6,units="in", dpi=600)
 jpeg("Figures/CO_alpha_trend_pops_NCC.jpeg", width = 1800, height=1600, units="px", pointsize=12, res=200)
 
 par(mfrow=c(2,3),mar=c(2,1,0,0),oma=c(3,4,1,1))

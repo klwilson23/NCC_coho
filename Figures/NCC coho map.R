@@ -32,8 +32,17 @@ plot_area1 <- bc_cities() %>%   #Extract datafram of all bc cities location
   st_buffer(dist = 2000000)%>%    # 20000 is a decent zoom in one that covers the Keogh
   st_bbox() %>%                 # Turn into a square
   st_as_sfc()                   # converts to sfc object
-NCC_coho <- read.csv("Data/NCC coho.csv",header=TRUE)
 
+co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
+### lumping Rivers Smith Inlet with Area 7-8
+co_pops[which(co_pops$group==7),4]<-6
+group_names <- c("Central Coast (South)","Hecate Lowlands","Inner Waters","Haida Gwaii","Skeena","Nass")
+group_names <- group_names[c(4,6,5,2,3,1)]
+group_names <- factor(group_names,levels=c("Haida Gwaii","Nass","Skeena","Inner Waters","Hecate Lowlands","Central Coast (South)"))
+co_pops$region <- group_names[co_pops$group]
+
+NCC_coho <- read.csv("Data/NCC coho.csv",header=TRUE)
+NCC_coho$region <- co_pops$region[match(NCC_coho$population,co_pops$population)]
 NCC_coho$lon <- NCC_coho$Longitude
 NCC_coho$lat <- NCC_coho$Latitude
 
@@ -69,11 +78,11 @@ watersheds <- bcdc_query_geodata('51f20b1a-ab75-42de-809d-bf415a0f9c62') %>%
   st_intersection(plot_area_ncc)             #Where it intersects with plot line
 
 bcdc_get_record("https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-stream-network")
-# all_streams <- bcdc_query_geodata("92344413-8035-4c08-b996-65a9b3f62fca") %>%
-#    filter(INTERSECTS(plot_area_ncc)) %>%
-#    filter(STREAM_ORDER%in% c(3,4,5)) %>%
-#    collect() %>%                           #Extracts the data
-#    st_intersection(plot_area_ncc)             #Where it intersects with plot line
+all_streams <- bcdc_query_geodata("92344413-8035-4c08-b996-65a9b3f62fca") %>%
+   filter(INTERSECTS(plot_area_ncc)) %>%
+   filter(STREAM_ORDER%in% c(4,5,6)) %>%
+   collect() %>%                           #Extracts the data
+   st_intersection(plot_area_ncc)             #Where it intersects with plot line
 
 rivers_index <- data_point_labels %>%
   st_nearest_feature(rivers_in_plot_area,data_point_labels)
@@ -217,25 +226,23 @@ ncc_map <- ggplot() +
         legend.position="top",legend.text = element_text(size=6),legend.key.width=unit(0.35, "in"))
 #bec <- bec[! (bec$ZONE %in% "CDF"),]
 
+catch_area_union <- catch_area %>% group_by(MGMT_AREA) %>% summarize(geometry = st_union(geometry)) %>% st_sf() # collapse cc_sub to one polygon
+
 ncc_bec <- ggplot() +
-  geom_sf(data = catch_area, aes(fill=as.factor(MGMT_AREA))) +
-  scale_fill_manual(name="Management areas",values=c("#7570b3","#d95f02","#e7298a","#a6761d","#6a3d9a","#fdbf6f","#bd0026","#e6ab02","#cab2d6")) +
+  geom_sf(data = catch_area_union, aes(fill=as.factor(MGMT_AREA))) +
+  scale_fill_manual(name="Management areas",values=c("#7570b3","#d95f02","#e7298a","#a6761d","#6a3d9a","#fdbf6f","#66c2a4","#e6ab02","#cab2d6")) +
   new_scale("fill") +
   geom_sf(data=alaska, fill='grey85') +
-  geom_sf(data=bec, aes(fill=ZONE,col=ZONE), alpha=0.8) +
+  geom_sf(data = coast_line, fill = "grey90") +                 #Plot coastline
+  # geom_sf(data=bec, aes(fill=ZONE,col=ZONE), alpha=0.8) +
   geom_sf(data = rivers_in_plot_area, colour = "#1f78b4") +  #Plot Rivers
+  geom_sf(data = all_streams, colour = "#1f78b4",lwd=0.15) +  #Plot Rivers
   geom_sf(data = rivers_ncc, colour = "#1f78b4") +
   geom_sf(data = lakes_in_plot_area, fill = "#1f78b4",colour=NA) +     #Plot Lakes
-  geom_sf(data = coast_line, fill = NA) +                 #Plot coastline
-  #scale_fill_viridis(name = "Last logging year",option="viridis",direction=-1) +
-  #scale_fill_gradient2(name="Last logged year",midpoint = 1920, low="darkgreen",mid="olivedrab3",high="goldenrod1",space="Lab") +
-  scale_fill_brewer(name="Biogeoclimatic zone",palette = "YlGn",direction=-1) +
-  scale_colour_brewer(name="Biogeoclimatic zone",palette = "YlGn",direction=-1) +
-  #scale_shape_manual(name="Waters",values=c("Rivers"=20,"Ocean entry"=21),breaks=c("Rivers","Ocean entry")) +
-  #scale_fill_brewer(name="Last logged year",palette = "Paired",direction=-1) +
-  #ggsflabel::geom_sf_label_repel(data=data_point_labels[data_point_labels$population %in% c("Neekas River","Bella Coola River"),],aes(label=population),size=1.5, force = 1, nudge_x = -2, seed = 10)+ #Add labels
-  ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=population),size=1.5, force = 1, nudge_x = -2, seed = 10,max.overlaps=20)+ #Add labels
-  geom_sf(data=data_point_labels,pch=21,fill="white") +
+  ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=population,fill=region),size=1.5, force = 1, nudge_x = -2, seed = 10,max.overlaps=20)+ #Add labels
+  geom_sf(data=data_point_labels,pch=21,aes(fill=region)) +
+  guides(fill = guide_legend(override.aes = aes(label = ""))) +
+  scale_fill_brewer(name="Region",palette = "Paired",direction=1) +
   #geom_sf(data=pts,pch=22,fill="seagreen") +
   geom_sf(data = plot_area_ncc, alpha = 0,colour='black') +        #Plot area box
   coord_sf(expand = FALSE) +                                    #Expands box to axes
@@ -245,7 +252,7 @@ ncc_bec <- ggplot() +
                          pad_x = unit(0.5, "in"), pad_y = unit(0.25, "in"),
                          style = north_arrow_fancy_orienteering,
                          height = unit(1,"cm"), width = unit(1, "cm"))+
-  theme(panel.background = element_rect('lightblue1'), panel.grid.major = element_line('lightblue1'),legend.position="top",legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(1, "lines"),legend.margin = margin(c(0,0,0,0),unit="lines"),legend.title=element_text(size=7),legend.text = element_text(size=5))
+  theme(panel.background = element_rect('lightblue1'), panel.grid.major = element_line('lightblue1'),legend.position="top",legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(1, "lines"),legend.margin = margin(c(0,0,0,-1),unit="lines"),legend.title=element_text(size=6),legend.text = element_text(size=5))
 
 bc_neigh <- bc_neighbours()
 bc_neigh <- bc_neigh[bc_neigh$name%in%c("Alaska"),]
@@ -280,7 +287,7 @@ ncc_inset <- ggdraw(ncc_bec) +
     # The distance along a (0,1) x-axis to draw the left edge of the plot
     x = 0.20, 
     # The distance along a (0,1) y-axis to draw the bottom edge of the plot
-    y = 0.73,
+    y = 0.71,
     # The width and height of the plot expressed as proportion of the entire ggdraw object
     width = 0.2, 
     height = 0.2)
@@ -300,18 +307,6 @@ SR.dat$logRS2<-log(SR.dat$RS_2)
 SR.dat$logRS3<-log(SR.dat$RS_3)
 SR.dat$Ut <- ifelse(!is.na(SR.dat$er_2),SR.dat$er_2,SR.dat$er_E)
 
-co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
-co_pops$mean_total<-NA
-
-for(i in co_pops$pop_no){
-  dat<-subset(SR.dat,SR.dat$pop_no==i)
-  co_pops[i,5]<-mean(na.omit(dat$total_runE))
-}
-
-### lumping Rivers Smith Inlet with Area 7-8
-co_pops[which(co_pops$group==7),4]<-6
-group_names <- c("Central Coast (South)","Hecate Lowlands","Inner Waters","Haida Gwaii","Skeena","Nass")
-group_names <- group_names[c(4,6,5,2,3,1)]
 SR.dat$group <- co_pops$group[match(SR.dat$population,co_pops$population)]
 SR.dat$region <- group_names[SR.dat$group]
 
