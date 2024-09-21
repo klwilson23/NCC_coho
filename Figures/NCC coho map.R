@@ -71,7 +71,7 @@ rivers_in_plot_area <- bcdc_query_geodata('f7dac054-efbf-402f-ab62-6fc4b32a619e'
   collect() %>%                           #Extracts the data
   st_intersection(plot_area_ncc)             #Where it intersects with plot line
 
-bcdc_get_record("https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-watersheds-groups")
+#bcdc_get_record("https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-watersheds-groups")
 watersheds <- bcdc_query_geodata('51f20b1a-ab75-42de-809d-bf415a0f9c62') %>%
   filter(INTERSECTS(plot_area_ncc)) %>%      # not sure about this line
   collect() %>%                           #Extracts the data
@@ -121,7 +121,7 @@ coast_line <- bchres %>% st_intersection(plot_area_ncc)
 #coastline_k <- bcdc_query_geodata("freshwater-atlas-coastlines") %>% collect() %>%  st_intersection(square_round_ph)
 
 # Locations of all cities within plot box
-city_df<- bc_cities() %>% st_intersection(plot_area_ncc)
+city_df<- bc_cities(ask=FALSE) %>% st_intersection(plot_area_ncc)
 
 #Below is to get a dataset of lakes in plot box
 lakes_in_plot_area <- bcdc_query_geodata("freshwater-atlas-lakes") %>%
@@ -130,10 +130,10 @@ lakes_in_plot_area <- bcdc_query_geodata("freshwater-atlas-lakes") %>%
   st_intersection(plot_area_ncc)
 
 # Ocean colouring - this doesn't work well  because the resolution isn't the same
-ocean_colour <- bc_neighbours() %>% 
+ocean_colour <- bc_neighbours(ask=FALSE) %>% 
   filter(type=="Ocean") %>% 
   st_intersection(plot_area_ncc)
-ocean <- bc_neighbours() %>% 
+ocean <- bc_neighbours(ask=FALSE) %>% 
   filter(type=="Ocean")
 
 river_mouth <- major_rivers %>%
@@ -167,7 +167,7 @@ pfma <- pfma[pfma$MGMT_AREA>=2 & pfma$MGMT_AREA<=10,]
 catch_area <- pfma %>% st_intersection(plot_area_ncc) %>% st_difference(bchres)
 bc_sub <- bchres %>% st_intersection(plot_area_ncc)
 bc_fish <- bchres %>% st_intersection(catch_area)
-bec <- bcmaps::bec()
+bec <- bcmaps::bec(ask=FALSE)
 #bec <- bec %>%  dplyr::group_by(ZONE) %>% dplyr::summarise(across(geometry, ~ sf::st_combine(.)), .groups = "keep") %>% dplyr::summarise(across(geometry, ~ sf::st_union(.)), .groups = "drop")
 
 bec <- bec %>% st_intersection(plot_area_ncc)# %>% st_intersection(bchres)
@@ -180,8 +180,8 @@ alaska <- alaska  %>% st_intersection(plot_area_ncc)
 
 # load forestry data
 library(raster)
-str_name<-'~/Google Drive/SFU postdoc/Keogh river/BC_disturbance/logging_ageclass2012/logging_year.tif' 
-log_year <- raster(str_name)
+str_name<-'~/My Drive/SFU postdoc/Keogh river/BC_disturbance/logging_ageclass2012/logging_year.tif' 
+log_year <- raster::raster(str_name)
 # project forestry data into map projections
 proj4string(log_year) <- CRS("+init=EPSG:3005")
 # find the map extents from the raster file, and "crop" or subset the raster, otherwise its a huge file
@@ -254,10 +254,10 @@ ncc_bec <- ggplot() +
                          height = unit(1,"cm"), width = unit(1, "cm"))+
   theme(panel.background = element_rect('lightblue1'), panel.grid.major = element_line('lightblue1'),legend.position="top",legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(1, "lines"),legend.margin = margin(c(0,0,0,-1),unit="lines"),legend.title=element_text(size=6),legend.text = element_text(size=5))
 
-bc_neigh <- bc_neighbours()
+bc_neigh <- bc_neighbours(ask=FALSE)
 bc_neigh <- bc_neigh[bc_neigh$name%in%c("Alaska"),]
 bc_map <- ggplot() +
-  geom_sf(data = bc_bound(), fill = "grey10",colour=NA) +
+  geom_sf(data = bc_bound(ask=FALSE), fill = "grey10",colour=NA) +
   geom_sf(data=bc_neigh, fill='grey50',colour=NA) +
   coord_sf(expand = FALSE) +
   theme_void() +
