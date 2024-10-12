@@ -61,7 +61,12 @@ box_fn <- function(mod="random",year_sim=sim_eval,ref_point_label="S(gen)",ref_p
   result_forecast_metrics <- readRDS(paste("Results/coho_forecasting",mod_lab,".rds",sep=""))
   result_forecast_run <- readRDS(paste("Results/coho_forecasting_popdyn",mod_lab,".rds",sep=""))
   result_forecast_RS <- readRDS(paste("Results/coho_forecasting_rec",mod_lab,".rds",sep=""))
-  mcmc_names <- colnames(result_forecast_run[[1]])
+  
+  result_forecast_metrics <- do.call(rbind, result_forecast_metrics)
+  result_forecast_run <- do.call(rbind, result_forecast_run)
+  result_forecast_RS <- do.call(rbind, result_forecast_RS)
+  
+  mcmc_names <- colnames(result_forecast_run)
   df_full <- NULL
   matLayout <- matrix(1:7,nrow=7,ncol=1,byrow=FALSE)
   layout(matLayout)
@@ -151,11 +156,11 @@ df <- rbind(ran_df,ar_df,tr_df)
 df$Region <- factor(df$Region,levels=group_names[c(7,1:6)])
 df$Regulation <- factor(df$Regulation,levels=colnames(escape_reg)[c(2,4,3,5,1)])
 
-ran_df <- box_fn(mod="random",year_sim=sim_eval,ref_point_label="S(MSY)",ref_point=0.8*Smsy_priors$mean)
+ran_df <- box_fn(mod="random",year_sim=sim_eval,ref_point_label="0.8S(MSY)",ref_point=0.8*Smsy_priors$mean)
 ran_df$Model <- "Random walk"
-ar_df <- box_fn(mod="ar1",year_sim=sim_eval,ref_point_label="S(MSY)",ref_point=0.8*Smsy_priors$mean)
+ar_df <- box_fn(mod="ar1",year_sim=sim_eval,ref_point_label="0.8S(MSY)",ref_point=0.8*Smsy_priors$mean)
 ar_df$Model <- "Mean reverting"
-tr_df <- box_fn(mod="tr1",year_sim=sim_eval,ref_point_label="S(MSY)",ref_point=0.8*Smsy_priors$mean)
+tr_df <- box_fn(mod="tr1",year_sim=sim_eval,ref_point_label="0.8S(MSY)",ref_point=0.8*Smsy_priors$mean)
 tr_df$Model <- "Trending"
 
 df_msy <- rbind(ran_df,ar_df,tr_df)
@@ -185,7 +190,7 @@ ggplot(df,aes(x=Regulation,y=Risk*100,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
   geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
-  ylab(expression("% risk below limit reference point ( "*S["20 years forward"]<=S[GEN]*" )"))+
+  ylab(expression("% of populations below LRP ( "*S["20 years forward"]<=S[GEN]*" )"))+
   facet_grid(rows=vars(Region),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
   #coord_flip(clip = "off") +
@@ -210,7 +215,7 @@ ggplot(df_msy,aes(x=Regulation,y=Ratio,fill=Regulation)) +
 ggsave("Figures/scenario comparisons ratio.jpeg",width=5.5,height=7,units="in")
 
 
-df_total$Reference.Point <- factor(df_total$Reference.Point,levels=c("S(gen)","S(MSY)","S(baseline)"))
+df_total$Reference.Point <- factor(df_total$Reference.Point,levels=c("S(gen)","0.8S(MSY)","S(baseline)"))
 ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=Ratio,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
@@ -229,7 +234,7 @@ ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=100*Risk,fill
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
   geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
-  ylab(expression("% risk below reference point ( "*S["20 years forward"]<="Reference Point)"))+
+  ylab(expression("% of populations below RP ("*S["20 years forward"]<="RP)"))+
   facet_grid(rows=vars(Reference.Point),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
   #coord_flip(clip = "off") +

@@ -10,6 +10,8 @@ require(rjags)
 require(R2jags)
 library(runjags)
 require(gsl)
+library(tidyverse)
+library(ggplot2)
 
 result_forecast_metrics <- readRDS("Results/coho_forecasting_tr1.rds")
 result_forecast_run <- readRDS("Results/coho_forecasting_popdyn_tr1.rds")
@@ -199,8 +201,8 @@ SR.dat_full$usr <- 0.8*(Smsy_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$lrp <- (Sgen_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$ucur <- ifelse(!is.na(SR.dat_full$er_2),SR.dat_full$er_2,SR.dat_full$er_E)
 SR.dat_full$umsy <- (Umsy_priors$mean)[SR.dat_full$pop_no]
-SR.dat_full$recent <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
-SR.dat_full$regime <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
+SR.dat_full$recent <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=1996,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
+SR.dat_full$regime <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=1996,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
 
 nsamps <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_full$pop_no==x]))})
 n_rec <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_full$pop_no==x & SR.dat_full$regime=='recent']))})
@@ -208,7 +210,53 @@ n_rec <- sapply(1:n.pops,function(x){sum(!is.na(SR.dat_full$escapement[SR.dat_fu
 SR.dat_full$n <- nsamps[SR.dat_full$pop_no]
 SR.dat_full$n_rec <- n_rec[SR.dat_full$pop_no]
 
-pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+recent,SR.dat_full,mean,na.rm=F)
+# make stacked bar plot
+
+pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~population+pop_no+regime,SR.dat_full,mean,na.rm=F)
+pop_sub$regime <- factor(pop_sub$regime,levels=c("early","recovering","recent"),labels=c("1980-1996","1997-2017","Since 2017"))
+pop_sub$mean_escapement <- co_pops$mean_total[match(pop_sub$population,co_pops$population)]
+pop_sub$region_no <- co_pops$group[match(pop_sub$population,co_pops$population)]
+pop_sub$Region[pop_sub$region_no==1] <- "Haida Gwaii"
+pop_sub$Region[pop_sub$region_no==2] <- "Nass"
+pop_sub$Region[pop_sub$region_no==3] <- "Skeena"
+pop_sub$Region[pop_sub$region_no==4] <- "Hecate Lowlands"
+pop_sub$Region[pop_sub$region_no==5] <- "Inner Waters"
+pop_sub$Region[pop_sub$region_no==6] <- "Central Coast (South)"
+pop_sub$Year <- pop_sub$year
+
+pop_sub$Region <- factor(pop_sub$Region,levels=c("Haida Gwaii","Nass","Skeena","Hecate Lowlands","Inner Waters","Central Coast (South)"))
+pop_sub$status <- ifelse(pop_sub$V2<1,"Below LRP",ifelse(pop_sub$V3<1,"Below USR",ifelse(pop_sub$V1<1,"Below Historical Baseline","Above Historical Baseline")))
+pop_sub$status <- factor(pop_sub$status,levels=c("Above Historical Baseline","Below Historical Baseline","Below USR","Below LRP"))
+
+co_pops$Region[co_pops$group==1] <- "Haida Gwaii"
+co_pops$Region[co_pops$group==2] <- "Nass"
+co_pops$Region[co_pops$group==3] <- "Skeena"
+co_pops$Region[co_pops$group==4] <- "Hecate Lowlands"
+co_pops$Region[co_pops$group==5] <- "Inner Waters"
+co_pops$Region[co_pops$group==6] <- "Central Coast (South)"
+co_pops$Region <- factor(co_pops$Region,levels=c("Haida Gwaii","Nass","Skeena","Hecate Lowlands","Inner Waters","Central Coast (South)"))
+co_pops2 <- expand.grid("pop_no"=co_pops$pop_no,"regime"=c("1980-1996","1997-2017","Since 2017"))
+co_pop2 <- full_join(co_pops,co_pops2,by=c("pop_no"))
+
+co_pop2 <- full_join(co_pop2,pop_sub,by=c("pop_no","Region","regime"))
+co_pop2$status <- as.character(co_pop2$status)
+co_pop2$status[is.na(co_pop2$status)] <- "Data Deficient"
+co_pop2$status <- factor(co_pop2$status,levels=c("Above Historical Baseline","Below Historical Baseline","Below USR","Below LRP","Data Deficient"),labels=c("Healthy","Cautious (Baseline)","Cautious (USR)","Critical (LRP)","Data Deficient"))
+
+co_pop2$value <- 1
+
+
+ggplot(co_pop2, aes(fill=status,y=value,x=Region)) + 
+  geom_bar(position="stack",stat="identity")+
+  ylab(expression(N[t]/N[RP])) +
+  facet_wrap(~regime,ncol=1) +
+  scale_fill_manual(name="Status",values=c("darkgreen","orange4","orange","red4","grey60")) +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(strip.text = element_text(hjust = 0),legend.text = element_text(size=7),legend.title = element_text(size=8))
+ggsave("Figures/Relative status across regions and time.jpeg", width = 7, height=6,units="in", dpi=600)
+
+
 recent <- pop_sub[pop_sub$recent=="recent",]
 early <- pop_sub[pop_sub$recent=="early",]
 recovering <- pop_sub[pop_sub$recent=="recovering",]
