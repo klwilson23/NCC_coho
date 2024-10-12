@@ -172,6 +172,12 @@ converg.test<-gelman.diag(resultSR_B3[,grep("mu_lalpha",mcmc_names)])
 converg.test<-gelman.diag(resultSR_B3[,grep("lalpha",mcmc_names)])
 converg.test<-gelman.diag(resultSR_B3[,grep("ln_alpha.mu",mcmc_names)])
 
+
+neff_test<-coda::effectiveSize(resultSR_B3[,grep("spawners",mcmc_names)])
+neff_test<-coda::effectiveSize(resultSR_B3[,grep("mu_lalpha",mcmc_names)])
+neff_test<-coda::effectiveSize(resultSR_B3[,grep("lalpha",mcmc_names)])
+neff_test<-coda::effectiveSize(resultSR_B3[,grep("ln_alpha.mu",mcmc_names)])
+
 saveRDS(resultSR_B3,file="Results/COSR3B.tr1_lalpha_MCMC.rds")
 resultSR_B3<-readRDS("Results/COSR3B.tr1_lalpha_MCMC.rds")
 mcmc_names <- colnames(resultSR_B3[[1]])
