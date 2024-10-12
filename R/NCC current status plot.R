@@ -10,6 +10,8 @@ require(rjags)
 require(R2jags)
 library(runjags)
 require(gsl)
+library(tidyverse)
+library(ggplot2)
 
 result_forecast_metrics <- readRDS("Results/coho_forecasting_tr1.rds")
 result_forecast_run <- readRDS("Results/coho_forecasting_popdyn_tr1.rds")
@@ -239,7 +241,7 @@ co_pop2 <- full_join(co_pops,co_pops2,by=c("pop_no"))
 co_pop2 <- full_join(co_pop2,pop_sub,by=c("pop_no","Region","regime"))
 co_pop2$status <- as.character(co_pop2$status)
 co_pop2$status[is.na(co_pop2$status)] <- "Data Deficient"
-co_pop2$status <- factor(co_pop2$status,levels=c("Above Historical Baseline","Below Historical Baseline","Below USR","Below LRP","Data Deficient"),labels=c("Healthy","Cautious","Cautious","Critical","Data Deficient"))
+co_pop2$status <- factor(co_pop2$status,levels=c("Above Historical Baseline","Below Historical Baseline","Below USR","Below LRP","Data Deficient"),labels=c("Healthy","Cautious (Baseline)","Cautious (USR)","Critical (LRP)","Data Deficient"))
 
 co_pop2$value <- 1
 
@@ -248,7 +250,7 @@ ggplot(co_pop2, aes(fill=status,y=value,x=Region)) +
   geom_bar(position="stack",stat="identity")+
   ylab(expression(N[t]/N[RP])) +
   facet_wrap(~regime,ncol=1) +
-  scale_fill_manual(name="Status",values=c("darkgreen","orange2","red4","grey60")) +
+  scale_fill_manual(name="Status",values=c("darkgreen","orange4","orange","red4","grey60")) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(strip.text = element_text(hjust = 0),legend.text = element_text(size=7),legend.title = element_text(size=8))
