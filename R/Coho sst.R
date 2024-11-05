@@ -150,7 +150,7 @@ summer_sst_lms <- alpha_summer_sst %>%
   nest(data = -region) %>% 
   mutate(
     fit = map(data, ~ lm(ln_alpha ~ sst.anom, data = .x)),
-    tidied = map(fit, tidy)
+    tidied = map(fit, tidy,conf.int=TRUE)
   ) %>% 
   unnest(tidied)
 
@@ -165,9 +165,23 @@ annual_sst_lms <- alpha_annual_sst %>%
   nest(data = -region) %>% 
   mutate(
     fit = map(data, ~ lm(ln_alpha ~ sst.anom, data = .x)),
-    tidied = map(fit, tidy)
+    tidied = map(fit, tidy,conf.int=TRUE)
   ) %>% 
   unnest(tidied)
 
-annual_sst_lms %>%
+annual_sst_lm_stats <- annual_sst_lms %>%
   filter(term=="sst.anom")
+
+annual_sst_cors <- alpha_annual_sst %>% 
+  group_by(region) %>%
+  summarize(correlation = cor(sst.anom, ln_alpha))
+
+summer_sst_lm_stats <- summer_sst_lms %>%
+  filter(term=="sst.anom")
+
+summer_sst_cors <- alpha_summer_sst %>% 
+  group_by(region) %>%
+  summarize(correlation = cor(sst.anom, ln_alpha))
+
+bind_rows(left_join(annual_sst_lm_stats,annual_sst_cors),
+          left_join(summer_sst_lm_stats,summer_sst_cors))
