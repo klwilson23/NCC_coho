@@ -7,6 +7,10 @@ SR.dat$logRS1<-log(SR.dat$RS_E)
 SR.dat$logRS2<-log(SR.dat$RS_2)
 SR.dat$logRS3<-log(SR.dat$RS_3)
 
+SR.dat$recruits <-ifelse(!is.na(SR.dat$RS_E),SR.dat$RS_2*SR.dat$escapement,SR.dat$RS_E*SR.dat$escapement)
+
+n.years<-length(seq(1980,2016,1))
+
 co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
 co_pops$mean_total<-NA
 
@@ -26,6 +30,8 @@ diag(covarGroups) <- 1
 
 resultSR_B3<-readRDS("Results/COSR3B.tr1_lalpha_MCMC.rds")
 mcmc_names <- colnames(resultSR_B3[[1]])
+samples <- dim(resultSR_B3[[1]])[1]
+n_chains <- 4
 #######################################################################
 #### estimating Smsy using lamberts w Scheuerell method
 Smsy<-Sgen<-Umsy<-matrix(data=NA,nrow=samples,ncol=n.pops)
@@ -53,9 +59,15 @@ for (j in 1:n.pops){
   for (i in 1:samples){
     alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("ln_alpha.mu",mcmc_names)[j]]
     beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
-    Smsy[i,j]<-(1 - lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
+    Smsy[i,j]<-(1 - gsl::lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
     Sgen[i,j] <- optimize(Sgen_find,c(0,Smsy[i,j]),tol=0.0001,Smsy=Smsy[i,j],a=alpha,b=beta)$minimum
     Umsy[i,j] <- optimize(umsy_find,c(0,1),tol=0.0001,Smsy=Smsy[i,j],a=alpha,b=beta)$minimum
+    plot(recruits~escapement,data=SR.dat[SR.dat$pop_no==j,],xlim=c(0,max(SR.dat[SR.dat$pop_no==j,"escapement"],na.rm=TRUE)),ylim=c(0,max(SR.dat[SR.dat$pop_no==j,"recruits"],na.rm=TRUE)))
+    curve(exp(alpha)*x*exp(-beta*x),add=TRUE,lwd=2)
+    abline(b=1,a=0)
+    abline(v=Smsy[i,j])
+    abline(v=alpha/beta)
+    legend("topright",paste("K=",round(alpha/beta,2),"\nUmsy=",1-round(Smsy[i,j]/(alpha/beta),2),sep=""))
   }
 }
 
@@ -69,9 +81,16 @@ for(t in 1:n.years)
     for (i in 1:samples){
       alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],match(paste("lalpha[",t,",",j,"]",sep=""),mcmc_names)]
       beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
-      Smsy_t[i,j,t] <- (1 - lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
+      Smsy_t[i,j,t] <- (1 - gsl::lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
       Sgen_t[i,j,t] <- optimize(Sgen_find,c(0,Smsy_t[i,j,t]),tol=0.0001,Smsy=Smsy_t[i,j,t],a=alpha,b=beta)$minimum
       Umsy_t[i,j,t] <- optimize(umsy_find,c(0,1),tol=0.0001,Smsy=Smsy_t[i,j,t],a=alpha,b=beta)$minimum
+      
+      plot(recruits~escapement,data=SR.dat[SR.dat$pop_no==j,],xlim=c(0,max(SR.dat[SR.dat$pop_no==j,"escapement"],na.rm=TRUE)),ylim=c(0,max(SR.dat[SR.dat$pop_no==j,"recruits"],na.rm=TRUE)))
+      curve(exp(alpha)*x*exp(-beta*x),add=TRUE,lwd=2)
+      abline(b=1,a=0)
+      abline(v=Smsy_t[i,j,t])
+      abline(v=alpha/beta)
+      legend("topright",paste("K=",round(alpha/beta,2),"\nUmsy=",1-round(Smsy_t[i,j,t]/(alpha/beta),2),sep=""))
     }
   }
 }
