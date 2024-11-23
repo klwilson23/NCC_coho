@@ -50,7 +50,8 @@ umsy_find <- function(Smsy,Umsy,a,b)
   #Smsy <- Smsy_priors$mean[1]
   #a <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("ln_alpha.mu",mcmc_names)[1]]
   #b <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[1]]
-  (Smsy-(1-Umsy)*(a/b))^2
+  #(Smsy-(1-Umsy)*(a/b))^2
+  (Smsy-(1-Umsy)*(exp(a)*Smsy*exp(-b*Smsy)))^2
 }
 for (j in 1:n.pops){
   samp.chain<-sample(1:n_chains,samples,replace=TRUE)
@@ -62,12 +63,12 @@ for (j in 1:n.pops){
     Smsy[i,j]<-(1 - gsl::lambert_W0(exp(1 - (alpha)))) / (beta) #Smsy in 1000 random draws from MCMC
     Sgen[i,j] <- optimize(Sgen_find,c(0,Smsy[i,j]),tol=0.0001,Smsy=Smsy[i,j],a=alpha,b=beta)$minimum
     Umsy[i,j] <- optimize(umsy_find,c(0,1),tol=0.0001,Smsy=Smsy[i,j],a=alpha,b=beta)$minimum
-    plot(recruits~escapement,data=SR.dat[SR.dat$pop_no==j,],xlim=c(0,max(SR.dat[SR.dat$pop_no==j,"escapement"],na.rm=TRUE)),ylim=c(0,max(SR.dat[SR.dat$pop_no==j,"recruits"],na.rm=TRUE)))
-    curve(exp(alpha)*x*exp(-beta*x),add=TRUE,lwd=2)
-    abline(b=1,a=0)
-    abline(v=Smsy[i,j])
-    abline(v=alpha/beta)
-    legend("topright",paste("K=",round(alpha/beta,2),"\nUmsy=",1-round(Smsy[i,j]/(alpha/beta),2),sep=""))
+    # plot(recruits~escapement,data=SR.dat[SR.dat$pop_no==j,],xlim=c(0,max(SR.dat[SR.dat$pop_no==j,"escapement"],na.rm=TRUE)),ylim=c(0,max(SR.dat[SR.dat$pop_no==j,"recruits"],na.rm=TRUE)))
+    # curve(exp(alpha)*x*exp(-beta*x),add=TRUE,lwd=2)
+    # abline(b=1,a=0)
+    # abline(v=Smsy[i,j])
+    # abline(v=alpha/beta)
+    # legend("topright",paste("K=",round(alpha/beta,2),"\nUmsy=",1-round(Smsy[i,j]/(alpha/beta),2),sep=""))
   }
 }
 
@@ -85,12 +86,12 @@ for(t in 1:n.years)
       Sgen_t[i,j,t] <- optimize(Sgen_find,c(0,Smsy_t[i,j,t]),tol=0.0001,Smsy=Smsy_t[i,j,t],a=alpha,b=beta)$minimum
       Umsy_t[i,j,t] <- optimize(umsy_find,c(0,1),tol=0.0001,Smsy=Smsy_t[i,j,t],a=alpha,b=beta)$minimum
       
-      plot(recruits~escapement,data=SR.dat[SR.dat$pop_no==j,],xlim=c(0,max(SR.dat[SR.dat$pop_no==j,"escapement"],na.rm=TRUE)),ylim=c(0,max(SR.dat[SR.dat$pop_no==j,"recruits"],na.rm=TRUE)))
-      curve(exp(alpha)*x*exp(-beta*x),add=TRUE,lwd=2)
-      abline(b=1,a=0)
-      abline(v=Smsy_t[i,j,t])
-      abline(v=alpha/beta)
-      legend("topright",paste("K=",round(alpha/beta,2),"\nUmsy=",1-round(Smsy_t[i,j,t]/(alpha/beta),2),sep=""))
+      # plot(recruits~escapement,data=SR.dat[SR.dat$pop_no==j,],xlim=c(0,max(SR.dat[SR.dat$pop_no==j,"escapement"],na.rm=TRUE)),ylim=c(0,max(SR.dat[SR.dat$pop_no==j,"recruits"],na.rm=TRUE)))
+      # curve(exp(alpha)*x*exp(-beta*x),add=TRUE,lwd=2)
+      # abline(b=1,a=0)
+      # abline(v=Smsy_t[i,j,t])
+      # abline(v=alpha/beta)
+      # legend("topright",paste("K=",round(alpha/beta,2),"\nUmsy=",1-round(Smsy_t[i,j,t]/(alpha/beta),2),sep=""))
     }
   }
 }
