@@ -1,4 +1,4 @@
-library(tidyr)
+library(tidyverse)
 library(dplyr)
 SR.dat<-read.table("Data/Coho_Brood_MASTER.txt", header=T)
 SR.dat_full <- SR.dat
@@ -65,7 +65,7 @@ df_wide <- tidyr::pivot_wider(df_full,names_from="Metric",values_from="Value")
 df_wide$U <- df_wide$Ut/df_wide$Umsy
 df_agg <- df_wide %>%
   group_by(year,region,Model) %>%
-  summarise(value=median(U),Ut=median(Umsy))
+  summarise(value=mean(U),Ut=mean(Umsy))
 df_agg$region <- factor(df_agg$region,levels=group_names)
 
 
@@ -75,7 +75,7 @@ ggplot(df_agg,aes(x=year,y=value,colour=Model,fill=Model))+
   geom_hline(yintercept=1,lty=2,colour='red') +
   facet_grid(rows=vars(region),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
-  ylab("Posterior median regional average")+xlab("Year")+
+  ylab("Posterior mean population status within region")+xlab("Year")+
   #coord_flip(clip = "off") +
   #guides(fill = guide_legend(override.aes = list(size=2)))+
   scale_fill_brewer(type="qual",palette=2,direction = -1) +
