@@ -117,7 +117,7 @@ for(t in 1:n.years)
     
     for (i in 1:samples){
       alpha_reg <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],match(paste("mu_lalpha[",t,",",k,"]",sep=""),mcmc_names)]
-      Umsy_reg_t[i,k,t] <- 1 -gsl::lambert_W0(exp(1-alpha_reg))
+      Umsy_reg_t[i,k,t] <- max(0,1 -gsl::lambert_W0(exp(1-alpha_reg)))
     }
   }
 }
