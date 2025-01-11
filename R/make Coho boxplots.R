@@ -221,7 +221,7 @@ ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=Ratio,fill=Re
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
   geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
   geom_hline(yintercept=1,lty=2,colour="red")+
-  ylab(expression("Relative population status ( "*S["20 years forward"]/"Reference Point)"))+
+  ylab(expression("Relative population status ( "*S["20 years forward"]/"RP)"))+
   facet_grid(rows=vars(Reference.Point),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE),scales="free") +
   theme_minimal() +
   #coord_flip(clip = "off") +
