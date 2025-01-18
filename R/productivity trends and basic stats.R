@@ -219,7 +219,7 @@ for (j in 1:n.pops){
 
 ## this is working
 
-hdi(Smsy[,24])
+HDInterval::hdi(Smsy[,24])
 hist(Smsy[,24])
 median(Smsy[,26])
 plot(exp(Smax.p),colMeans(Smsy),ylab="S(msy)",xlab="S(max)")
