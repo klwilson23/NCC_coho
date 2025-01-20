@@ -104,13 +104,14 @@ Umsy_static$Value <- Umsy_reg$mean[match(Umsy_static$Region,Umsy_reg$Region)]
 Umsy_reg_full <- bind_rows(Umsy_reg_tv,Umsy_static)
 
 Umsy_reg_full$Region <- factor(Umsy_reg_full$Region,levels=group_names)
-
+Umsy_reg_full$Value <- pmax(0,Umsy_reg_full$Value)
 ggplot(Umsy_reg_full,aes(x=Year,y=Value,colour=Model,fill=Model))+
   geom_line()+
   geom_point(data=Umsy_reg_full[Umsy_reg_full$Model=="Time-varying",],aes(x=Year,y=Value,fill=Model))+
   facet_wrap(~Region,ncol=3,labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
   ylab("Regional average U(MSY)")+xlab("Year")+
+  ylim(c(0,0.8))+
   #coord_flip(clip = "off") +
   #guides(fill = guide_legend(override.aes = list(size=2)))+
   scale_fill_brewer(type="qual",palette=2,direction = -1) +
