@@ -20,7 +20,7 @@ harvest_rates$harvest_rate[harvest_rates$region=="Central Coast (Rivers/Smith CU
 
 table(harvest_rates$sector,harvest_rates$region)
 SR.dat<-read.table("Data/Coho_Brood_MASTER.txt", header=T)
-SR.dat<-subset(SR.dat,SR.dat$year<2017)
+# SR.dat<-subset(SR.dat,SR.dat$year<2017)
 
 SR.dat$logRS1<-log(SR.dat$RS_E)
 SR.dat$logRS2<-log(SR.dat$RS_2)
@@ -29,6 +29,8 @@ SR.dat$logRS3<-log(SR.dat$RS_3)
 SR.dat$er_est <- SR.dat$er_2
 SR.dat$er_est[is.na(SR.dat$er_est)] <- SR.dat$er_E[is.na(SR.dat$er_est)]
 SR.dat$Ut <- ifelse(!is.na(SR.dat$er_2),SR.dat$er_2,SR.dat$er_E)
+SR.dat$total_run_final <- ifelse(!is.na(SR.dat$total_run2),SR.dat$total_run2,SR.dat$total_runE)
+
 ## I grouped rivers and smiths inlet with Area 7 & 8
 co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
 
@@ -76,3 +78,45 @@ ggplot(data=regional_average_harvest,aes(x=year,y=Ut,colour=region,group=interac
   theme(text = element_text(size=10),axis.text = element_text(size=10),legend.title = element_text(size = 8),legend.text = element_text(size=6)) +
   theme(legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(0.5, "lines"),legend.margin = margin(c(0,1,0,-1),unit="lines"))
 ggsave("Figures/harvest rates over time.jpeg", width = 7, height=6,units="in", dpi=600)
+
+
+regional_average_run <- SR.dat %>%
+  group_by(region,year) %>%
+  summarise("total_run"=sum(total_run_final,na.rm=TRUE)) %>%
+  ungroup() %>%
+  group_by(region) %>%
+  mutate("total_run_scale"=as.numeric(scale(total_run))) %>%
+  ungroup()
+
+ggplot(data=regional_average_run,aes(x=year,y=total_run_scale,colour=region,group=region))+
+  geom_line(data=regional_average_run,aes(x=year,y=total_run_scale,colour=region,group=region))+
+  geom_point(data=regional_average_run,aes(x=year,y=total_run_scale,colour=region,fill=region,group=region))+
+  facet_wrap(~region,labeller=label_wrap_gen(width=40,multi_line = TRUE),ncol=3) +
+  theme_minimal() +
+  ylab("Scaled total abundance (escapement + harvest)")+xlab("Year")+
+  scale_colour_manual(name="Region",values=c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c")) +
+  scale_fill_manual(name="Region",values=c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c")) +
+  theme(legend.position="top") +
+  theme(text = element_text(size=10),axis.text = element_text(size=10),legend.title = element_text(size = 8),legend.text = element_text(size=6)) +
+  theme(legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(0.5, "lines"),legend.margin = margin(c(0,1,0,-1),unit="lines"))
+ggsave("Figures/regional run sizes over time.jpeg", width = 7, height=6,units="in", dpi=600)
+
+SR.dat <- SR.dat %>%
+  group_by(population) %>%
+  mutate("total_run_scale"=as.numeric(scale(total_run_final))) %>%
+  ungroup()
+
+ggplot(data=SR.dat,aes(x=year,y=total_run_scale,colour=region,group=interaction(region, population)))+
+  geom_line(data=SR.dat,aes(x=year,y=total_run_scale,colour=region,group=interaction(region, population)),alpha=0.25)+
+  geom_point(data=SR.dat,aes(x=year,y=total_run_scale,colour=region,fill=region,group=interaction(region, population)),alpha=0.25)+
+  # geom_smooth(data=SR.dat,aes(x=year,y=total_run_scale,colour=region,fill=region,group=region),method = "gam", formula = y ~ s(x, bs = "cs", fx = FALSE, k = length(unique(SR.dat$year))))+
+  geom_line(data=regional_average_run,aes(x=year,y=total_run_scale,colour=region,group=region),lwd=0.9)+
+  geom_point(data=regional_average_run,aes(x=year,y=total_run_scale,colour=region,group=region),alpha=0.5)+
+  facet_wrap(~region,labeller=label_wrap_gen(width=40,multi_line = TRUE),ncol=3) +
+  theme_minimal() +
+  ylab("Scaled total abundance (escapement + harvest)")+xlab("Year")+
+  scale_colour_manual(name="Region",values=c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c")) +
+  scale_fill_manual(name="Region",values=c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c")) +
+  theme(legend.position="top",strip.text.x = element_text(hjust = -0)) #+
+  # theme(legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(0.5, "lines"),legend.margin = margin(c(0,1,0,-1),unit="lines"))
+ggsave("Figures/regional and local run sizes over time.jpeg", width = 7, height=5,units="in", dpi=600)
