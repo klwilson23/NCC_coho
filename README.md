@@ -1,2 +1,6 @@
-# NCC_coho
-Time-series analysis for North and Central Coast Coho Salmon
+# Using fisheries risk assessment to inform precautionary and collaborative management in a declining coho salmon fishery
+
+Repository to support Bayesian hierarchical time-series analysis for North and Central Coast Coho Salmon since 1980
+
+Summary
+The conservation and management of Pacific salmon in Canada faces an uncertain future. While policies, like Canada’s Wild Salmon Policy, increasingly embrace collaborative governance, salmon continue to decline because of climate changes and overfishing that require precautionary management. We quantified spatial-temporal patterns in population dynamics for 52 coho salmon populations along the North and Central Coast of British Columbia since 1980 to determine population status, assess risks posed by a mixed-stock fishery that spans U.S., Canadian, and Indigenous jurisdictions, and implement forward simulations of alternative productivity trends and harvest scenarios to inform management. Overall, we found declining abundances for 51% of coho populations since 2017 that were driven by productivity regime shifts associated with recent marine heatwaves. Although long-term coho recovery depended on future productivity trends, reduced harvest rates across U.S. and Canadian jurisdictions can improve short-term recoveries. While rebuilding coho will depend largely on whether productivity improves, harvest management remains one of the few tools available to provide a safe operating space for coho populations, and their fisheries, to adapt to ongoing ecosystem changes.
