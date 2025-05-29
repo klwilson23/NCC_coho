@@ -189,7 +189,7 @@ margins <- c(0.25,0.25,0.25,0.5)
 ggplot(df,aes(x=Regulation,y=Risk*100,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
   ylab(expression("% of populations below LRP ( "*S["20 years forward"]<=S[GEN]*" )"))+
   facet_grid(rows=vars(Region),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
@@ -202,9 +202,9 @@ ggsave("Figures/scenario comparisons.jpeg",width=5.5,height=7,units="in")
 
 ggplot(df_msy,aes(x=Regulation,y=Ratio,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
-  geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
   geom_hline(yintercept=1,lty=2,colour="red")+
+  geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
   ylab(expression("Relative population status ( "*S["20 years forward"]/0.8*S[MSY]*" )"))+
   facet_grid(rows=vars(Region),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
@@ -218,9 +218,9 @@ ggsave("Figures/scenario comparisons ratio.jpeg",width=5.5,height=7,units="in")
 df_total$Reference.Point <- factor(df_total$Reference.Point,levels=c("S(gen)","0.8S(MSY)","S(baseline)"))
 ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=Ratio,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
-  geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
   geom_hline(yintercept=1,lty=2,colour="red")+
+  geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
   ylab(expression("Relative population status ( "*S["20 years forward"]/"RP)"))+
   facet_grid(rows=vars(Reference.Point),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE),scales="free") +
   theme_minimal() +
@@ -233,7 +233,7 @@ ggsave("Figures/scenario comparisons ratios coastal.jpeg",width=5.5,height=7,uni
 ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=100*Risk,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.1,color="white",alpha=0.5) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
   ylab(expression("% of populations below RP ("*S["20 years forward"]<="RP)"))+
   facet_grid(rows=vars(Reference.Point),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
