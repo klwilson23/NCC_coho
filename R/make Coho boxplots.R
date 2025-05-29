@@ -185,18 +185,18 @@ aggregate(Risk*100~Reference.Point+Region+Model,df_total[df_total$Regulation=='1
 aggregate(Risk*100~Reference.Point+Regulation+Model,df_total[df_total$Regulation%in%c('10-year average',"50% AK & BC reduction","No harvest"),],mean)
 aggregate(Ratio~Reference.Point+Regulation+Model,df_total[df_total$Regulation%in%c('10-year average',"50% AK & BC reduction","No harvest"),],mean)
 dodge <- position_dodge(width = 0.9)
-margins <- c(0.25,0.25,0.25,0.5)
+margins <- c(0.1,0.5,0.1,0.1)
 ggplot(df,aes(x=Regulation,y=Risk*100,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7,lwd=0.4,outliers=FALSE) +
   ylab(expression("% of populations below LRP ( "*S["20 years forward"]<=S[GEN]*" )"))+
   facet_grid(rows=vars(Region),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
   #coord_flip(clip = "off") +
   #guides(fill = guide_legend(override.aes = list(size=2)))+
   scale_fill_brewer(type="qual",palette=3,direction = -1) +
-  theme(legend.position="top",strip.text.y = element_text(size=6.5),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"))
+  theme(legend.position="top",strip.text.y = element_text(size=8),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"),plot.margin=unit(margins,"line"))
 ggsave("Figures/scenario comparisons.jpeg",width=5.5,height=7,units="in")
 
 
@@ -204,14 +204,14 @@ ggplot(df_msy,aes(x=Regulation,y=Ratio,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_hline(yintercept=1,lty=2,colour="red")+
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7,lwd=0.4,outliers=FALSE) +
   ylab(expression("Relative population status ( "*S["20 years forward"]/0.8*S[MSY]*" )"))+
   facet_grid(rows=vars(Region),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
   #coord_flip(clip = "off") +
   #guides(fill = guide_legend(override.aes = list(size=2)))+
   scale_fill_brewer(type="qual",palette=3,direction = -1) +
-  theme(legend.position="top",strip.text.y = element_text(size=6.5),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"))
+  theme(legend.position="top",strip.text.y = element_text(size=8),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"),plot.margin=unit(margins,"line"))
 ggsave("Figures/scenario comparisons ratio.jpeg",width=5.5,height=7,units="in")
 
 
@@ -220,27 +220,27 @@ ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=Ratio,fill=Re
   geom_violin(position=dodge,scale="width") +
   geom_hline(yintercept=1,lty=2,colour="red")+
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7,lwd=0.4,outliers=FALSE) +
   ylab(expression("Relative population status ( "*S["20 years forward"]/"RP)"))+
   facet_grid(rows=vars(Reference.Point),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE),scales="free") +
   theme_minimal() +
   #coord_flip(clip = "off") +
   #guides(fill = guide_legend(override.aes = list(size=2)))+
   scale_fill_brewer(type="qual",palette=3,direction = -1) +
-  theme(legend.position="top",strip.text.y = element_text(size=6.5),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"))
+  theme(legend.position="top",strip.text.y = element_text(size=8),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"),plot.margin=unit(margins,"line"))
 ggsave("Figures/scenario comparisons ratios coastal.jpeg",width=5.5,height=7,units="in")
 
 ggplot(df_total[df_total$Region=="Coast-wide",],aes(x=Regulation,y=100*Risk,fill=Regulation)) +
   geom_violin(position=dodge,scale="width") +
   geom_jitter(pch=21,color="white",alpha=0.5,fill="grey20",width=0.25) +
-  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7) +
+  geom_boxplot(position=dodge,width=0.3,color="grey0",alpha=0.7,lwd=0.4,outliers=FALSE) +
   ylab(expression("% of populations below RP ("*S["20 years forward"]<="RP)"))+
   facet_grid(rows=vars(Reference.Point),cols=vars(Model),labeller=label_wrap_gen(width=15,multi_line = TRUE)) +
   theme_minimal() +
   #coord_flip(clip = "off") +
   #guides(fill = guide_legend(override.aes = list(size=2)))+
   scale_fill_brewer(type="qual",palette=3,direction = -1) +
-  theme(legend.position="top",strip.text.y = element_text(size=6.5),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"))
+  theme(legend.position="top",strip.text.y = element_text(size=8),strip.text.x = element_text(size=8),axis.text.x=element_text(size=7,angle=45,hjust=1),axis.text.y=element_text(size=7),legend.text=element_text(size=6),legend.title=element_text(size=7),axis.title=element_text(size=8),legend.key.size = unit(0.9, "line"),panel.spacing.y = unit(0.75, "lines"),plot.margin=unit(margins,"line"))
 ggsave("Figures/scenario comparisons risk coastal.jpeg",width=5.5,height=7,units="in")
 
 library(dplyr)
