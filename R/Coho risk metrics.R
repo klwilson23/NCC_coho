@@ -36,19 +36,22 @@ baseline_spawn <- sapply(1:n.pops,function(x){mean(SR.dat$escapement[SR.dat$pop_
 s_over_msy <- sapply(1:n.pops,function(x){sum(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]<=(Smsy_priors$mean[x]),na.rm=TRUE)/sum(!is.na(SR.dat_predict[SR.dat_predict$pop_no==x,"escapement"]))})
 
 SR.dat_full$total_run <- ifelse(!is.na(SR.dat_full$total_run2),SR.dat_full$total_run2,SR.dat_full$total_runE)
-pop_sub <- aggregate(total_run~pop_no,SR.dat_full,mean,na.rm=TRUE)
-run_over_baseline <- 100*(sum(pop_sub$total_run)-sum(baselines[pop_sub$pop_no]))/sum(baselines[pop_sub$pop_no])
+pop_sub <- aggregate(total_run~pop_no,SR.dat_full[SR.dat_full$year>=2017,],mean,na.rm=TRUE)
+run_over_baseline <- 100*((sum(pop_sub$total_run)-sum(baselines[pop_sub$pop_no]))/sum(baselines[pop_sub$pop_no])) # CJFAS revision - declines in total run size (Discussion)
+
+pop_sub <- aggregate(escapement~pop_no,SR.dat_predict,mean,na.rm=TRUE)
+escapement_over_baseline <- 100*((sum(pop_sub$escapement)-sum(baseline_spawn[pop_sub$pop_no]))/sum(baseline_spawn[pop_sub$pop_no])) # CJFAS revision - declines in total escapement (Discussion)
+
 
 SR.dat_full$baseline_run <- (baselines)[SR.dat_full$pop_no]
+SR.dat_full$baseline_spawn <- (baseline_spawn)[SR.dat_full$pop_no]
 SR.dat_full$lrp <- (Sgen_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$usr <- 0.8*(Smsy_priors$mean)[SR.dat_full$pop_no]
 SR.dat_full$ucur <- ifelse(!is.na(SR.dat_full$er_2),SR.dat_full$er_2,SR.dat_full$er_E)
 SR.dat_full$umsy <- (Umsy_priors$mean)[SR.dat_full$pop_no]
-SR.dat_full$regime <- ifelse(SR.dat_full$year>=1990 & SR.dat_full$year<=2001,"early",ifelse(SR.dat_full$year<=2011,"recovering",ifelse(SR.dat_full$year>=2017,"current","recent")))
-
-pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+regime,SR.dat_full[SR.dat_full$group%in%c(4,5,6),],mean,na.rm=F)
-colnames(pop_sub) <- c("pop_no","regime","run_ratio","lrp_ratio","usr_ratio","umsy_ratio")
-current <- pop_sub[pop_sub$regime=="current",]
+SR.dat_full$regime <- ifelse(SR.dat_full$year>=1980 & SR.dat_full$year<=1996,"early",ifelse(SR.dat_full$year<=2016,"recovering","recent"))
+pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,escapement/baseline_spawn,ucur/umsy)~pop_no+regime,SR.dat_full,mean,na.rm=F)
+colnames(pop_sub) <- c("pop_no","regime","run_ratio","lrp_ratio","usr_ratio","baseline_ratio","umsy_ratio")
 recent <- pop_sub[pop_sub$regime=="recent",]
 early <- pop_sub[pop_sub$regime=="early",]
 recovering <- pop_sub[pop_sub$regime=="recovering",]
@@ -57,19 +60,23 @@ time_series$pop <- pop_names[time_series$pop_no]
 
 risk_fn <- function(x)
   {
-  return(list("run_ratio"=sum(x$run_ratio<=1)/nrow(x),"lrp_ratio"=sum(x$lrp_ratio<=1)/nrow(x),"usr_ratio"=sum(x$usr_ratio<=1)/nrow(x),"umsy_ratio"=sum(x$umsy_ratio>=1)/nrow(x),"pops"=nrow(x)))
+  return(list("run_ratio"=sum(x$run_ratio<=1)/nrow(x),"lrp_ratio"=sum(x$lrp_ratio<=1)/nrow(x),"usr_ratio"=sum(x$usr_ratio<=1)/nrow(x),"baseline_ratio"=sum(x$baseline_ratio<=1)/nrow(x),"umsy_ratio"=sum(x$umsy_ratio>=1)/nrow(x),"pops"=nrow(x)))
   }
 
-risk_fn(current)
 risk_fn(recent)
+
+pop_sub_full <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,escapement/baseline_spawn,ucur/umsy)~pop_no+regime+year,SR.dat_full,mean,na.rm=T)
+colnames(pop_sub_full) <- c("pop_no","regime","year","run_ratio","lrp_ratio","usr_ratio","baseline_ratio","umsy_ratio")
+
+risk_fn(pop_sub_full[pop_sub_full$year>=2017,])
 risk_fn(recovering)
 risk_fn(early)
 
 rel_risk_fn <- function(x)
 {
-  return(list("run_ratio"=mean(x$run_ratio,na.rm=TRUE),"lrp_ratio"=mean(x$lrp_ratio,na.rm=TRUE),"usr_ratio"=mean(x$usr_ratio,na.rm=TRUE),"umsy_ratio"=mean(x$umsy_ratio,na.rm=TRUE),"pops"=nrow(x)))
+  return(list("run_ratio"=mean(x$run_ratio,na.rm=TRUE),"lrp_ratio"=mean(x$lrp_ratio,na.rm=TRUE),"usr_ratio"=mean(x$usr_ratio,na.rm=TRUE),"baseline_ratio"=mean(x$baseline_ratio,na.rm=TRUE),"umsy_ratio"=mean(x$umsy_ratio,na.rm=TRUE),"pops"=nrow(x)))
 }
-rel_risk_fn(current)
+rel_risk_fn(pop_sub_full[pop_sub_full$year>=2017,])
 rel_risk_fn(recent)
 rel_risk_fn(recovering)
 rel_risk_fn(early)

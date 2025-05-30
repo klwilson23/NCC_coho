@@ -23,6 +23,7 @@ SR.dat$region <- factor(SR.dat$region,levels=c("Haida Gwaii","Nass","Skeena","He
 table(SR.dat[SR.dat$CU=="northern_coastal",c("stat_area","region")])
 table(SR.dat[SR.dat$CU=="douglas_channel_kitimat",c("stat_area","region")])
 table(SR.dat[,c("stat_area","region","CU")])
+table(SR.dat[sapply(1:max(SR.dat$pop_no),function(x){which(SR.dat$pop_no==x)[1]}),c("CU","region")])
 
 baselines <- sapply(1:n.pops,function(x){mean(SR.dat$total_runE[SR.dat$pop_no==x & (SR.dat$year>=(2000)) & (SR.dat$year<=2015)],na.rm=TRUE)})
 baselines_2 <- sapply(1:n.pops,function(x){mean(SR.dat$total_run2[SR.dat$pop_no==x & (SR.dat$year>=(2000)) & (SR.dat$year<=2015)],na.rm=TRUE)})

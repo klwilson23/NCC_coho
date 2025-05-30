@@ -20,11 +20,41 @@ SR.dat<-subset(SR.dat,SR.dat$year<2017)
 SR.dat$logRS1<-log(SR.dat$RS_E)
 SR.dat$logRS2<-log(SR.dat$RS_2)
 SR.dat$logRS3<-log(SR.dat$RS_3)
+SR.dat$er_est <- SR.dat$er_2
+SR.dat$er_est[is.na(SR.dat$er_est)] <- SR.dat$er_E[is.na(SR.dat$er_est)]
 
 pop_names <- unique(SR.dat$population[order(SR.dat$pop_no)])
 
 co_pops<-read.table("Data/coho_groups.txt",header=TRUE)
 co_pops$mean_total<-NA
+
+n.pops<-max(SR.dat$pop_no)
+n.years<-length(seq(1980,2016,1))
+spawn<-matrix(nrow=n.years,ncol=n.pops,NA)
+
+rec1<-matrix(nrow=n.years,ncol=n.pops,NA)
+rec2<-matrix(nrow=n.years,ncol=n.pops,NA)
+rec3<-matrix(nrow=n.years,ncol=n.pops,NA)
+
+logRS1<-matrix(nrow=n.years,ncol=n.pops,NA)
+logRS2<-matrix(nrow=n.years,ncol=n.pops,NA)
+logRS3<-matrix(nrow=n.years,ncol=n.pops,NA)
+logRSo<-matrix(nrow=n.years,ncol=n.pops,NA)
+er_est <- matrix(nrow=n.years,ncol=n.pops,NA)
+
+for(i in 1:n.pops){
+  dat<-subset(SR.dat,SR.dat$pop_no==i)
+  spawn[,i]<-dat[,"escapement"]
+  rec1[,i]<-dat[,"rec_E"]
+  rec2[,i]<-dat[,"rec_2"]
+  rec3[,i]<-dat[,"rec_3"]
+  logRS1[,i]<-dat[,"logRS1"]
+  logRS2[,i]<-dat[,"logRS2"]
+  logRS3[,i]<-dat[,"logRS3"]
+  logRSo[,i]<-ifelse(!is.na(dat[,"logRS2"]),dat[,"logRS2"],dat[,"logRS1"])
+  er_est[,i]<-dat$er_est
+}
+
 years<-seq(1980,2016,1)
 
 for(i in co_pops$pop_no){
@@ -38,7 +68,6 @@ co_pops[which(co_pops$group==7),4]<-6
 ### using mean run size (harvest scenario 1) across the timeseries as our prior on capacity
 Smax.p<-rep(NA,n.pops)
 Smax.tau<-rep(NA,n.pops)
-n.pops<-max(SR.dat$pop_no)
 
 for(i in 1:n.pops){
   Smax.p[i]<-log(mean(na.omit(rec1[,i])))
@@ -266,16 +295,26 @@ s_base_ratio <- sapply(1:n.pops,function(x){mean(SR.dat_predict[SR.dat_predict$p
 
 pop_risks <- data.frame("pop"=pop_names,"region"=group_names[group],"s_over_gen"=s_over_gen,"s_over_msy"=s_over_msy,"s_over_base"=s_over_base,s_gen_ratio,s_msy_ratio,s_base_ratio)
 
+
+aggregate(100*(1-s_base_ratio)~1,pop_risks,mean)
+aggregate(100*(1-s_base_ratio)~1,pop_risks,range)
 aggregate(100*(1-s_base_ratio)~region,pop_risks,mean)
 aggregate(100*(1-s_base_ratio)~region,pop_risks,range)
+sum(round(pop_risks[,8],2)>=1,na.rm=TRUE)
 
 colSums(pop_risks[,3:5]>0,na.rm=TRUE)
 sum((pop_risks[,4]*pop_risks[,5])>0,na.rm=TRUE)
 sum((pop_risks[,4]>0 & pop_risks[,5]<0) | (pop_risks[,4]<0 & pop_risks[,5]>0),na.rm=TRUE)
+sum(pop_risks[,4]==0 & pop_risks[,5]==1,na.rm=TRUE)
+sum(pop_risks[,4]>0 | pop_risks[,5]>0,na.rm=TRUE)
 
 colSums(pop_risks[,3:5]==1,na.rm=TRUE)
 sum((pop_risks[,4]*pop_risks[,5])==1,na.rm=TRUE)
+sum((pop_risks[,4]==0&pop_risks[,5]==0),na.rm=TRUE)
 colSums(pop_risks[,3:5]==0,na.rm=TRUE)
+
+sum((pop_risks[,4]==0),na.rm=TRUE)
+
 
 SR.dat_predict[SR.dat_predict$population=="east_arm",]
 SR.dat_predict[SR.dat_predict$population=="nias",]

@@ -144,7 +144,7 @@ ggsave("Figures/SST/annual_sst_prod.jpeg")
 ## and how about some stats?
 alpha_summer_sst %>% 
   group_by(region) %>%
-  summarize(correlation = cor(sst.anom, ln_alpha))
+  dplyr::summarize(correlation = cor(sst.anom, ln_alpha))
 
 summer_sst_lms <- alpha_summer_sst %>%
   nest(data = -region) %>% 
@@ -154,34 +154,73 @@ summer_sst_lms <- alpha_summer_sst %>%
   ) %>% 
   unnest(tidied)
 
+newdat <- alpha_summer_sst[alpha_summer_sst$brood_yr%in%c(1980,2016),]
+summer_decline <- rep(NA,length(unique(summer_sst_lms$region)))
+names(summer_decline) <- unique(summer_sst_lms$region)
+for(i in 1:length(summer_decline))
+{
+  ii <- unique(summer_sst_lms$region)[i]
+  sub_df <- summer_sst_lms[summer_sst_lms$region==ii,]
+  pred <- sub_df$estimate[sub_df$term=="(Intercept)"] + sub_df$estimate[sub_df$term=="sst.anom"]*newdat$sst.anom[newdat$region==ii]
+  summer_decline[i] <- 100*((pred[2]-pred[1])/pred[1])
+}
+
 summer_sst_lms %>%
   filter(term=="sst.anom")
 
 alpha_annual_sst %>% 
   group_by(region) %>%
-  summarize(correlation = cor(sst.anom, ln_alpha))
+  dplyr::summarize(correlation = cor(sst.anom, ln_alpha))
+
+newdat <- alpha_annual_sst[alpha_annual_sst$brood_yr%in%c(1980,2016),]
 
 annual_sst_lms <- alpha_annual_sst %>%
   nest(data = -region) %>% 
   mutate(
     fit = map(data, ~ lm(ln_alpha ~ sst.anom, data = .x)),
-    tidied = map(fit, tidy,conf.int=TRUE)
+    tidied = map(fit, tidy,conf.int=TRUE),
   ) %>% 
   unnest(tidied)
+
+annual_decline <- rep(NA,length(unique(annual_sst_lms$region)))
+names(annual_decline) <- unique(annual_sst_lms$region)
+for(i in 1:length(annual_decline))
+{
+  ii <- unique(annual_sst_lms$region)[i]
+  sub_df <- annual_sst_lms[annual_sst_lms$region==ii,]
+  pred <- sub_df$estimate[sub_df$term=="(Intercept)"] + sub_df$estimate[sub_df$term=="sst.anom"]*newdat$sst.anom[newdat$region==ii]
+  annual_decline[i] <- 100*((pred[2]-pred[1])/pred[1])
+}
+# pred <- function(x,  ...){
+#   z <- predict.lm(x, se.fit = TRUE, ...)
+#   as.data.frame(z[1:2])
+# }
+# 
+# annual_sst_pred <- alpha_annual_sst %>%
+#   group_by(region) %>%
+#   nest() %>% 
+#   mutate(m1 = purrr::map(.x = data, .f = ~ lm(ln_alpha ~ sst.anom, data = .))) %>%
+#   mutate(decline = purrr::map(.x = m1, ~ pred(.))) %>% 
+#   select(data,region, decline) %>%
+#   unnest(decline)
+# alpha_annual_df <- left_join(alpha_annual_sst,annual_sst_pred,by=c("year","region"))
+# 
+# alpha_annual_df %>%
+#   filter(brood_yr==1982 | brood_yr == 2018)
 
 annual_sst_lm_stats <- annual_sst_lms %>%
   filter(term=="sst.anom")
 
 annual_sst_cors <- alpha_annual_sst %>% 
   group_by(region) %>%
-  summarize(correlation = cor(sst.anom, ln_alpha))
+  dplyr::summarize(correlation = cor(sst.anom, ln_alpha))
 
 summer_sst_lm_stats <- summer_sst_lms %>%
   filter(term=="sst.anom")
 
 summer_sst_cors <- alpha_summer_sst %>% 
   group_by(region) %>%
-  summarize(correlation = cor(sst.anom, ln_alpha))
+  dplyr::summarise(correlation = cor(sst.anom, ln_alpha))
 
 bind_rows(left_join(annual_sst_lm_stats,annual_sst_cors),
           left_join(summer_sst_lm_stats,summer_sst_cors))

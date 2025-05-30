@@ -15,10 +15,10 @@ library(sf)
 library(sp)
 library(ggplot2)
 library(ggspatial) # this is for adding the arrows
-library(rgdal) #use this for data conversion
+# library(rgdal) #use this for data conversion
 library(ggrepel) # to offset labels using geom_sf_label_repel  --> Not done here
 library(riverdist) # to snap points to River --> Not done here
-library(bcmapsdata)
+# library(bcmapsdata)
 library(viridis)
 library(ggnewscale)
 library(tidyr)
@@ -54,6 +54,14 @@ data_points <- as_tibble(NCC_coho) %>% mutate(lat=spgeo@coords[,2],lon=spgeo@coo
 
 ## Subset the points data to be a single point for each location (for labelling Locations)
 data_point_labels <- data_points %>% group_by(population) %>% slice(1)
+data_point_labels$pop_name <- data_point_labels$population
+data_point_labels$pop_name <- gsub("kspx","Kispiox",data_point_labels$pop_name)
+data_point_labels$pop_name <- gsub("zolzap","Ksi Ts'oohl Ts'ap",data_point_labels$pop_name)
+data_point_labels$pop_name <- gsub("_"," ",data_point_labels$pop_name)
+data_point_labels$pop_name <- gsub("ck","",data_point_labels$pop_name)
+data_point_labels$pop_name <- stringr::str_trim(data_point_labels$pop_name)
+data_point_labels$pop_name <- capwords(data_point_labels$pop_name)
+
 
 ncc_extent <- raster::extent(data_points)
 ncc_extent@xmin <- ncc_extent@xmin - 3*buffer
@@ -89,7 +97,7 @@ rivers_index <- data_point_labels %>%
 rivers_ncc <- rivers_in_plot_area[rivers_index,]
 
 rivernames <- rivers_ncc$GNIS_NAME_1
-rivernames2 <- data_point_labels$population
+rivernames2 <- data_point_labels$pop_name
 
 major_riverGroup <- substr(rivers_ncc$FWA_WATERSHED_CODE,1,3)
 major_riverID <- paste(major_riverGroup,paste(rep("000000",20),collapse="-"),sep="-")
@@ -103,7 +111,7 @@ major_rivers <- rivers_in_plot_area[match(major_riverID,rivers_in_plot_area$FWA_
 major_rivers <- dplyr::bind_rows(major_rivers,nass,skeena)
 
 data_point_labels$river_name <- rivernames
-major_riverGroup[which(data_point_labels$population=="lachmach")] <- "500"
+major_riverGroup[which(data_point_labels$pop_name=="Lachmach")] <- "500"
 data_point_labels$waterbodyid <- ifelse(as.numeric(major_riverGroup)>=900,rivers_ncc$FWA_WATERSHED_CODE,ifelse(as.numeric(major_riverGroup)==500,nass$FWA_WATERSHED_CODE,skeena$FWA_WATERSHED_CODE))
 data_point_labels$drainage <- ifelse(as.numeric(major_riverGroup)>=900,rivers_ncc$FWA_WATERSHED_CODE,ifelse(as.numeric(major_riverGroup)==500,"Nass","Skeena"))
 #major_rivers <- rivers_in_plot_area %>%
@@ -158,7 +166,7 @@ ggplot(data=watersheds) +
   geom_sf(data = watersheds, fill = "grey90") +
   #geom_sf(data=rivers_ncc,lwd=1.5,colour = "black") +
   geom_sf(data=major_rivers,lwd=1,colour = "black") +
-  geom_sf(data=data_point_labels$ocean_entry[data_point_labels$population=="bella_coola"],pch=22,cex=2,bg='seagreen')
+  geom_sf(data=data_point_labels$ocean_entry[data_point_labels$pop_name=="Bella Coola"],pch=22,cex=2,bg='seagreen')
 
 #alaska <- bcmaps::bc_neighbours() %>% st_intersection(plot_area_ncc)
 #alaska_full <- bcmaps::bc_neighbours()
@@ -213,7 +221,7 @@ ncc_map <- ggplot() +
   geom_sf(data = rivers_ncc, colour = "lightblue3") +
   #geom_sf(data=pts,pch=22,bg="seagreen") +
   #geom_sf(data = lakes_in_plot_area, fill = "lightblue1") +     #Plot Lakes
-  ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=population),size=1.5, force = 1, nudge_x = -2, seed = 10)+ #Add labels
+  ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=pop_name),size=1.5, force = 1, nudge_x = -2, seed = 10,max.overlaps=20)+ #Add labels
   coord_sf(expand = FALSE) +                                    #Expands box to axes
   xlab('Longitude') + ylab('Latitude') +                        #Axis titles
   annotation_scale(location = "bl", width_hint = 0.5) +         #Rose Compass
@@ -239,7 +247,7 @@ ncc_bec <- ggplot() +
   geom_sf(data = all_streams, colour = "#1f78b4",lwd=0.15) +  #Plot Rivers
   geom_sf(data = rivers_ncc, colour = "#1f78b4") +
   geom_sf(data = lakes_in_plot_area, fill = "#1f78b4",colour=NA) +     #Plot Lakes
-  ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=population,fill=region),size=1.5, force = 1, nudge_x = -2, seed = 10,max.overlaps=20)+ #Add labels
+  ggsflabel::geom_sf_label_repel(data=data_point_labels,aes(label=pop_name,fill=region),size=1.75, force = 1, nudge_x = -2, seed = 10,max.overlaps=20,key_glyph = draw_key_rect)+ #Add labels
   geom_sf(data=data_point_labels,pch=21,aes(fill=region)) +
   guides(fill = guide_legend(override.aes = aes(label = ""))) +
   scale_fill_brewer(name="Region",palette = "Paired",direction=1) +

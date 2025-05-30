@@ -120,3 +120,32 @@ ggplot(data=SR.dat,aes(x=year,y=total_run_scale,colour=region,group=interaction(
   theme(legend.position="top",strip.text.x = element_text(hjust = -0)) #+
   # theme(legend.box.just="center",legend.box="horizontal",legend.justification = "center",legend.key.size=unit(0.5, "lines"),legend.margin = margin(c(0,1,0,-1),unit="lines"))
 ggsave("Figures/regional and local run sizes over time.jpeg", width = 7, height=5,units="in", dpi=600)
+
+capwords <- function(s, strict = FALSE) {
+  cap <- function(s) paste(toupper(substring(s, 1, 1)),
+                           {s <- substring(s, 2); if(strict) tolower(s) else s},
+                           sep = "", collapse = " " )
+  sapply(strsplit(s, split = " "), cap, USE.NAMES = !is.null(names(s)))
+}
+
+SR_dotchart <- SR.dat
+SR_dotchart$population <- gsub("kspx","Kispiox",SR_dotchart$population)
+SR_dotchart$population <- gsub("zolzap","Ksi Ts'oohl Ts'ap",SR_dotchart$population)
+SR_dotchart$population <- gsub("_"," ",SR_dotchart$population)
+SR_dotchart$population <- gsub("ck","",SR_dotchart$population)
+SR_dotchart$population <- stringr::str_trim(SR_dotchart$population)
+SR_dotchart$population <- capwords(SR_dotchart$population)
+SR_dotchart$population <- factor(SR_dotchart$population,levels=rev(sort(unique(SR_dotchart$population))))
+SR_dotchart$escapement_logic <- factor(ifelse(!is.na(SR_dotchart$escapement),"Observed","Missing"),levels=c("Observed","Missing"))
+
+ggplot(data=SR_dotchart,aes(x=year,y=population,colour=region,shape=escapement_logic))+
+  geom_point(data=SR_dotchart,aes(x=year,y=population,colour=region,shape=escapement_logic),alpha=0.9)+
+  # facet_wrap(~region,labeller=label_wrap_gen(width=40,multi_line = TRUE),ncol=1) +
+  theme_classic() +
+  ylab("Population")+xlab("Year")+
+  scale_colour_manual(name="Region",values=c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c")) +
+  scale_fill_manual(name="Region",values=c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c")) +
+  scale_shape_manual(name="Survey",values=c(16,4))+
+  guides(colour=guide_legend(ncol=2),shape=guide_legend(ncol=1))+
+  theme(legend.position="top",strip.text.x = element_text(hjust = -0),legend.justification = "left",legend.box.margin = margin(c(0,0,0,-4),unit="lines"),legend.box = "horizontal",legend.text = element_text(size=10),legend.title = element_text(size=10))
+ggsave("Figures/escapement dotchart.jpeg", width = 6, height=8,units="in", dpi=600)

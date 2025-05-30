@@ -176,12 +176,12 @@ Smsy_priors <- readRDS("Results/Smsy.rds")
 Sgen_priors <- readRDS("Results/Sgen.rds")
 Umsy_priors <- readRDS("Results/Umsy.rds")
 
-alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("ln_alpha.mu",mcmc_names)[j]]
-beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
-curve(exp(alpha)*x*exp(-beta*x),from=0,to=2*alpha/beta,xlab="Spawners",ylab="Recruits")
-abline(v=(1-Umsy_priors$mean[j])*alpha/beta)
-abline(a=0,b=1,lty=2)
-abline(v=Smsy_priors$mean[j])
+# alpha <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("ln_alpha.mu",mcmc_names)[j]]
+# beta <- resultSR_B3[[samp.chain[i]]][samp.MCMC[i],grep("beta",mcmc_names)[j]]
+# curve(exp(alpha)*x*exp(-beta*x),from=0,to=2*alpha/beta,xlab="Spawners",ylab="Recruits")
+# abline(v=(1-Umsy_priors$mean[j])*alpha/beta)
+# abline(a=0,b=1,lty=2)
+# abline(v=Smsy_priors$mean[j])
 
 baselines <- sapply(1:n.pops,function(x){mean(SR.dat$total_runE[SR.dat$pop_no==x & (SR.dat$year>=(2000)) & (SR.dat$year<=2015)],na.rm=TRUE)})
 baselines_2 <- sapply(1:n.pops,function(x){mean(SR.dat$total_run2[SR.dat$pop_no==x & (SR.dat$year>=(2000)) & (SR.dat$year<=2015)],na.rm=TRUE)})
@@ -213,7 +213,7 @@ SR.dat_full$n_rec <- n_rec[SR.dat_full$pop_no]
 # make stacked bar plot
 
 pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~population+pop_no+regime,SR.dat_full,mean,na.rm=F)
-pop_sub$regime <- factor(pop_sub$regime,levels=c("early","recovering","recent"),labels=c("1980-1996","1997-2017","Since 2017"))
+pop_sub$regime <- factor(pop_sub$regime,levels=c("early","recovering","recent"),labels=c("1980-1996","1997-2016","Since 2017"))
 pop_sub$mean_escapement <- co_pops$mean_total[match(pop_sub$population,co_pops$population)]
 pop_sub$region_no <- co_pops$group[match(pop_sub$population,co_pops$population)]
 pop_sub$Region[pop_sub$region_no==1] <- "Haida Gwaii"
@@ -235,7 +235,7 @@ co_pops$Region[co_pops$group==4] <- "Hecate Lowlands"
 co_pops$Region[co_pops$group==5] <- "Inner Waters"
 co_pops$Region[co_pops$group==6] <- "Central Coast (South)"
 co_pops$Region <- factor(co_pops$Region,levels=c("Haida Gwaii","Nass","Skeena","Hecate Lowlands","Inner Waters","Central Coast (South)"))
-co_pops2 <- expand.grid("pop_no"=co_pops$pop_no,"regime"=c("1980-1996","1997-2017","Since 2017"))
+co_pops2 <- expand.grid("pop_no"=co_pops$pop_no,"regime"=c("1980-1996","1997-2016","Since 2017"))
 co_pop2 <- full_join(co_pops,co_pops2,by=c("pop_no"))
 
 co_pop2 <- full_join(co_pop2,pop_sub,by=c("pop_no","Region","regime"))
@@ -245,6 +245,7 @@ co_pop2$status <- factor(co_pop2$status,levels=c("Above Historical Baseline","Be
 
 co_pop2$value <- 1
 
+table(co_pop2$status,co_pop2$regime) # links to Abstract findings in CJFAS
 
 ggplot(co_pop2, aes(fill=status,y=value,x=Region)) + 
   geom_bar(position="stack",stat="identity")+
@@ -257,9 +258,9 @@ ggplot(co_pop2, aes(fill=status,y=value,x=Region)) +
 ggsave("Figures/Relative status across regions and time.jpeg", width = 7, height=6,units="in", dpi=600)
 
 
-recent <- pop_sub[pop_sub$recent=="recent",]
-early <- pop_sub[pop_sub$recent=="early",]
-recovering <- pop_sub[pop_sub$recent=="recovering",]
+recent <- pop_sub[pop_sub$regime=="Since 2017",]
+early <- pop_sub[pop_sub$regime=="1980-1996",]
+recovering <- pop_sub[pop_sub$regime=="1997-2016",]
 time_series <- merge(merge(early,recovering,by="pop_no"),recent,by="pop_no")
 time_series$pop <- pop_names[time_series$pop_no]
 jpeg(filename="Figures/current status tr1.jpeg", width=4.5,height=4.5, units="in", res=600)
@@ -323,9 +324,9 @@ early <- pop_sub[pop_sub$regime=="early",]
 recovering <- pop_sub[pop_sub$regime=="recovering",]
 time_series <- merge(merge(early,recovering,by="pop_no"),recent,by="pop_no")
 time_series$pop <- pop_names[time_series$pop_no]
-pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+recent,SR.dat_subby,mean,na.rm=F)
-colnames(pop_sub) <- c("pop_no","recent","run_ratio","lrp","msy","u_ratio")
-recent <- pop_sub[pop_sub$recent=="recent",]
+pop_sub <- aggregate(cbind(total_run/baseline_run,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+regime,SR.dat_subby,mean,na.rm=F)
+colnames(pop_sub) <- c("pop_no","regime","run_ratio","lrp","msy","u_ratio")
+recent <- pop_sub[pop_sub$regime=="recent",]
 
 jpeg(filename="Figures/current status and time-series tr1.jpeg", width=4.5,height=9, units="in", res=600)
 layout(matrix(1:2,nrow=2,ncol=1))
@@ -361,11 +362,13 @@ Corner_text("(b)","topleft",cex=1)
 
 dev.off()
 
-pop_sub <- aggregate(cbind(escapement/baseline_spawn,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+recent,SR.dat_full,mean,na.rm=F)
-colnames(pop_sub) <- c("pop_no","recent","baseline","lrp","msy","u_ratio")
+pop_sub <- aggregate(cbind(escapement/baseline_spawn,escapement/lrp,escapement/usr,ucur/umsy)~pop_no+regime,SR.dat_full,mean,na.rm=F)
+colnames(pop_sub) <- c("pop_no","regime","baseline","lrp","msy","u_ratio")
 pop_sub$pop <- pop_names[pop_sub$pop_no]
-pop_sub <- pop_sub[pop_sub$recent=='recent',]
+pop_sub <- pop_sub[pop_sub$regime=='recent',]
 sum(pop_sub$baseline<=1 & pop_sub$msy<=1)
+sum(pop_sub$baseline<=1 | pop_sub$msy<=1| pop_sub$lrp<=1)/nrow(pop_sub)
+sum(pop_sub$msy<=1 | pop_sub$lrp<=1)/nrow(pop_sub)
 sum((pop_sub$baseline<=1 & pop_sub$msy>1) | (pop_sub$baseline>1 & pop_sub$msy<=1))
 sum(pop_sub$baseline>1 & pop_sub$msy>1)
 nrow(pop_sub)
