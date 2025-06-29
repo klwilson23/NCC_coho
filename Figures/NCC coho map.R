@@ -60,7 +60,7 @@ data_point_labels$pop_name <- gsub("zolzap","Ksi Ts'oohl Ts'ap",data_point_label
 data_point_labels$pop_name <- gsub("_"," ",data_point_labels$pop_name)
 data_point_labels$pop_name <- gsub("ck","",data_point_labels$pop_name)
 data_point_labels$pop_name <- stringr::str_trim(data_point_labels$pop_name)
-data_point_labels$pop_name <- capwords(data_point_labels$pop_name)
+data_point_labels$pop_name <- gtools::capwords(data_point_labels$pop_name)
 
 
 ncc_extent <- raster::extent(data_points)
