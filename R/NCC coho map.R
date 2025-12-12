@@ -58,9 +58,9 @@ data_point_labels$pop_name <- data_point_labels$population
 data_point_labels$pop_name <- gsub("kspx","Kispiox",data_point_labels$pop_name)
 data_point_labels$pop_name <- gsub("zolzap","Ksi Ts'oohl Ts'ap",data_point_labels$pop_name)
 data_point_labels$pop_name <- gsub("_"," ",data_point_labels$pop_name)
-data_point_labels$pop_name <- gsub("ck","",data_point_labels$pop_name)
+data_point_labels$pop_name <- gsub(" ck","",data_point_labels$pop_name)
 data_point_labels$pop_name <- stringr::str_trim(data_point_labels$pop_name)
-data_point_labels$pop_name <- gtools::capwords(data_point_labels$pop_name)
+data_point_labels$pop_name <- as.character(sapply(data_point_labels$pop_name,function(x){gtools::capwords(x)}))
 
 
 ncc_extent <- raster::extent(data_points)
